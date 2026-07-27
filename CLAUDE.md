@@ -102,8 +102,13 @@ Cloud Functions (`functions/src/`, exported from `index.ts`):
   from a client-supplied parameter), `razorpay.ts`, `sms.ts` (MSG91), `mail.ts`, `format.ts`.
 - `config.ts` — all third-party credentials are Cloud Functions secrets (`firebase functions:secrets:set
   <NAME>`): `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `MSG91_MANAGED_AUTH_KEY`.
-  **These are not yet set** — Razorpay/MSG91 accounts don't exist yet, so payments and managed-gateway OTP SMS
-  won't work end-to-end until they're created and the secrets are set. Everything else works today.
+  **Currently set to placeholder values** (`placeholder-not-yet-real`), not real Razorpay/MSG91 keys — so
+  payments and managed-gateway OTP SMS won't work end-to-end until real accounts exist and
+  `firebase functions:secrets:set <NAME>` is re-run with the real values. Everything else (login, Earn,
+  Redeem with OTP override, Correction, Settings) works today, deployed and verified live.
+- `defineString` params (`MSG91_SENDER_ID`, `LOGIN_EMAIL_DOMAIN`, `APP_BASE_URL`) are pinned in
+  `functions/.env.hyperdynamics-loyalty` (committed — these aren't secrets, just non-interactive-deploy
+  requirements) to their documented defaults from `config.ts`.
 
 ### Data model
 
@@ -123,49 +128,33 @@ Verified: `flutter analyze` clean, `flutter test` passing, `flutter build web` a
 `android/app/google-services.json`, and `ios/Runner/GoogleService-Info.plist` are all real, flutterfire-
 generated config — not placeholders.
 
-Deployed:
+Deployed and verified live end-to-end (signed in as the demo account and called `earnCredit` directly —
+correct points math, customer doc created, `stats/summary` incremented via the trigger):
 - Firestore database (region `asia-south1`), `firestore.rules`, `firestore.indexes.json`.
+- **Authentication** — Email/Password enabled. Demo account: business id `demo`, password `demo1234`
+  (`businesses/demo` Firestore doc exists too, with one seeded Earn transaction from the verification above —
+  useful as pre-populated demo data, not just a test artifact).
+- **All 9 Cloud Functions**, Blaze plan active. First deploy needed several retries — freshly-enabled
+  APIs (Secret Manager, Eventarc, Cloud Run, Pub/Sub) took a few minutes each to finish propagating
+  IAM/service-agent permissions before functions using them would create successfully; this is normal for a
+  project's very first 2nd-gen Functions deploy and won't recur on later deploys. Artifact Registry cleanup
+  policy is set (`firebase functions:artifacts:setpolicy`) so container image storage doesn't grow unbounded.
 - **Firebase Hosting** (`flutter build web` + `firebase deploy --only hosting`) at
   **https://hyperdynamics-loyalty.web.app** — same domain family as the rest of the Firebase project; this
-  is what `APP_BASE_URL` in `config.ts` assumes for the Razorpay callback once Functions are live. Re-deploy
-  any time with `flutter build web --release && firebase deploy --only hosting`.
+  is what `APP_BASE_URL` in `config.ts` assumes for the Razorpay callback. Re-deploy any time with
+  `flutter build web --release && firebase deploy --only hosting`.
 - **GitHub Pages** (source repo: `https://github.com/HyperDynamics/hyperdynamics-loyalty-manager`, public) at
   **https://hyperdynamics.github.io/hyperdynamics-loyalty-manager/** — auto-builds and redeploys on every
   push to `main` via `.github/workflows/deploy-pages.yml`. Kept alongside Firebase Hosting as a second,
-  zero-config mirror (doesn't need Firebase billing state to stay up); Firebase Hosting is still the
-  canonical URL once Functions go live, since that's the domain Razorpay's callback is wired to.
-- Login itself no longer needs Cloud Functions (see above), but Earn/Redeem/Correction/Settings-gateway-save
-  still do — those will error until Functions are deployed (see below).
+  zero-config mirror; Firebase Hosting is still the canonical URL since Razorpay's callback is wired to it.
 
-Not yet deployed — each needs one manual, one-time action outside what a CLI/agent can do:
-- **Authentication** — not initialized on this project at all yet (`firebase auth:import`/`auth:export` both
-  fail with `CONFIGURATION_NOT_FOUND`). A human needs to visit
-  `https://console.firebase.google.com/project/hyperdynamics-loyalty/authentication` once and enable it (turn
-  on the Email/Password sign-in provider). No CLI/API path exists for this first-time setup, same as Storage
-  below. Once it's on, a demo login can be created without needing Blaze/Cloud Functions at all — see
-  scratch note below.
+Not yet deployed:
 - **Storage** — needs a human to click "Get Started" once at
   `https://console.firebase.google.com/project/hyperdynamics-loyalty/storage` (no CLI equivalent for
-  first-time bucket provisioning). Deploy `storage.rules` after that with `firebase deploy --only storage`.
-- **Cloud Functions** — the project is on the free Spark plan; Functions requires upgrading to Blaze
-  (pay-as-you-go, needs a billing account) at
-  `https://console.firebase.google.com/project/hyperdynamics-loyalty/usage/details`. After upgrading:
-  `firebase deploy --only functions`.
-- Razorpay and MSG91 don't have real accounts/keys yet (see `config.ts`) — the integration code is real, just
-  unwired. Once you have them, `firebase functions:secrets:set <NAME>` for each secret in `config.ts`.
-
-**Creating a demo login without Blaze**: once Authentication is enabled, `firebase auth:import` can create a
-business account directly — no Admin SDK/service-account credentials needed, since it authenticates as the
-CLI's own login. Build a `users.json` with `localId`, `email` (`{businessId}@login.hyperdynamics.app`),
-`passwordHash` (**base64 of the raw bcrypt hash bytes** — `accountImporter.js`'s `toWebSafeBase64` only
-swaps `/`/`+` for URL-safe chars, it does not encode; a `htpasswd -bnBC 10 "" '<password>'` bcrypt hash needs
-an explicit `base64` pass first), and `customAttributes` (JSON-stringified, e.g. `{"businessId":"demo"}`) —
-then `firebase auth:import users.json --hash-algo=BCRYPT --project=hyperdynamics-loyalty`. Also create the
-matching `businesses/{businessId}` Firestore doc (client writes to that collection are allowed for the
-owning business per `firestore.rules`, but the *first* write establishing ownership has to happen before the
-user is signed in as that business — easiest is a one-off authenticated write via the Firebase console's
-Firestore data tab, or temporarily relaxing the rule). Don't commit the `users.json` (it contains a password
-hash) — keep it outside the repo.
+  first-time bucket provisioning — same class of issue Authentication had before it was enabled). Deploy
+  `storage.rules` after that with `firebase deploy --only storage`. Only Settings' logo upload needs this —
+  everything else works without it.
+- Razorpay and MSG91 secrets are placeholders (see `config.ts` above) — real accounts don't exist yet.
 
 Note for local development in this sandbox: the Firebase CLI's bundled npm fails on the `predeploy` build
 hook here specifically (`Cannot read properties of undefined (reading 'stdin')` — a stdio quirk of this
