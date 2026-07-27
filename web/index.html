@@ -18,19 +18,37 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="HyperDynamics Loyalty Manager — customer loyalty points, made simple.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="loyalty_manager">
+  <meta name="apple-mobile-web-app-title" content="HyperDynamics Loyalty Manager">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>loyalty_manager</title>
+  <title>HyperDynamics Loyalty Manager</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    GitHub Pages serves this as a static site with no server-side rewrites,
+    so a hard refresh (or a direct link, e.g. Razorpay's payment callback)
+    on any sub-route like /login would 404. web/404.html redirects those
+    into "/?/<path>"; this decodes that back into a real path before the
+    Flutter router initializes. See https://github.com/rafgraph/spa-github-pages.
+  -->
+  <script>
+    (function (l) {
+      if (l.search[1] === '/') {
+        var decoded = l.search.slice(1).split('&').map(function (s) {
+          return s.replace(/~and~/g, '&');
+        }).join('?');
+        window.history.replaceState(null, null, l.pathname.slice(0, -1) + decoded + l.hash);
+      }
+    }(window.location));
+  </script>
 </head>
 <body>
   <!--

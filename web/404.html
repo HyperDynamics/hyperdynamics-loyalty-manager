@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>HyperDynamics Loyalty Manager</title>
+  <!--
+    GitHub Pages has no server-side rewrites, so it 404s any direct/refreshed
+    sub-route (e.g. /login). This redirects to "/?/<path>", which
+    web/index.html decodes back into a real path before Flutter's router
+    initializes. See https://github.com/rafgraph/spa-github-pages.
+  -->
+  <script>
+    var pathSegmentsToKeep = 1; // repo name segment in /hyperdynamics-loyalty-manager/...
+    var l = window.location;
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+      l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+      l.hash
+    );
+  </script>
+</head>
+<body></body>
+</html>
