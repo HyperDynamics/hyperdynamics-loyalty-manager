@@ -117,51 +117,67 @@ See the Firestore layout and security-rule rationale in `firestore.rules`; summa
 `stats/summary` subcollections) and top-level `paymentOrders/{referenceId}` (publicly readable by reference id
 so the pre-login confirmation page can poll it; only Cloud Functions write it).
 
-## Current status / known gaps
+## Current status (as of 2026-07-27)
 
 Verified: `flutter analyze` clean, `flutter test` passing, `flutter build web` and `flutter build ios
---no-codesign --simulator` both succeed. Android build is blocked locally only by unaccepted SDK licenses
-(see below), not a code issue.
+--no-codesign --simulator` both succeed end-to-end. The Firebase backend is **live and verified working** —
+signed in as the demo account and called `earnCredit` directly (not simulated): correct points math, customer
+doc created, `stats/summary` incremented via the trigger.
 
-**Firebase project**: real project `hyperdynamics-loyalty` exists (Firebase CLI account
-`hyperdynamics08@gmail.com`, aliased as `default` in `.firebaserc`). `lib/firebase_options.dart`,
-`android/app/google-services.json`, and `ios/Runner/GoogleService-Info.plist` are all real, flutterfire-
-generated config — not placeholders.
+### Already live — don't redo this
 
-Deployed and verified live end-to-end (signed in as the demo account and called `earnCredit` directly —
-correct points math, customer doc created, `stats/summary` incremented via the trigger):
-- Firestore database (region `asia-south1`), `firestore.rules`, `firestore.indexes.json`.
-- **Authentication** — Email/Password enabled. Demo account: business id `demo`, password `demo1234`
-  (`businesses/demo` Firestore doc exists too, with one seeded Earn transaction from the verification above —
-  useful as pre-populated demo data, not just a test artifact).
-- **All 9 Cloud Functions**, Blaze plan active. First deploy needed several retries — freshly-enabled
-  APIs (Secret Manager, Eventarc, Cloud Run, Pub/Sub) took a few minutes each to finish propagating
-  IAM/service-agent permissions before functions using them would create successfully; this is normal for a
-  project's very first 2nd-gen Functions deploy and won't recur on later deploys. Artifact Registry cleanup
-  policy is set (`firebase functions:artifacts:setpolicy`) so container image storage doesn't grow unbounded.
-- **Firebase Hosting** (`flutter build web` + `firebase deploy --only hosting`) at
-  **https://hyperdynamics-loyalty.web.app** — same domain family as the rest of the Firebase project; this
-  is what `APP_BASE_URL` in `config.ts` assumes for the Razorpay callback. Re-deploy any time with
-  `flutter build web --release && firebase deploy --only hosting`.
-- **GitHub Pages** (source repo: `https://github.com/HyperDynamics/hyperdynamics-loyalty-manager`, public) at
-  **https://hyperdynamics.github.io/hyperdynamics-loyalty-manager/** — auto-builds and redeploys on every
-  push to `main` via `.github/workflows/deploy-pages.yml`. Kept alongside Firebase Hosting as a second,
-  zero-config mirror; Firebase Hosting is still the canonical URL since Razorpay's callback is wired to it.
+- **Firebase project** `hyperdynamics-loyalty` (CLI account `hyperdynamics08@gmail.com`, aliased `default` in
+  `.firebaserc`). `lib/firebase_options.dart`, `android/app/google-services.json`,
+  `ios/Runner/GoogleService-Info.plist` are all real, flutterfire-generated config.
+- **Firestore** (region `asia-south1`) — database, `firestore.rules`, `firestore.indexes.json` all deployed.
+- **Authentication** — Email/Password enabled. **Demo login: business id `demo`, password `demo1234`**
+  (`businesses/demo` doc exists with one seeded Earn transaction — real pre-populated demo data).
+- **All 9 Cloud Functions** deployed on the Blaze plan (`firebase functions:list` to confirm). The very first
+  deploy needed several retries while freshly-enabled APIs (Secret Manager, Eventarc, Cloud Run, Pub/Sub)
+  finished propagating IAM/service-agent permissions — a one-time thing for a project's first 2nd-gen
+  Functions deploy, won't recur. Artifact Registry cleanup policy is set so container images don't accumulate.
+- **Firebase Hosting** (canonical URL, matches `APP_BASE_URL`): **https://hyperdynamics-loyalty.web.app**.
+  Redeploy: `flutter build web --release && firebase deploy --only hosting`.
+- **GitHub repo** (public): **https://github.com/HyperDynamics/hyperdynamics-loyalty-manager** — auto-deploys
+  to **https://hyperdynamics.github.io/hyperdynamics-loyalty-manager/** on every push to `main` via
+  `.github/workflows/deploy-pages.yml`. Kept as a zero-config mirror alongside Firebase Hosting.
+- Onboarding fee is **₹4,999** (not the original spec's ₹5,000) — updated in landing page copy, the real
+  Razorpay charge amount (`ONBOARDING_FEE_PAISE` in `config.ts`), and `uploads/loyalty-points-ui-spec.md`.
 
-Not yet deployed:
-- **Storage** — needs a human to click "Get Started" once at
-  `https://console.firebase.google.com/project/hyperdynamics-loyalty/storage` (no CLI equivalent for
-  first-time bucket provisioning — same class of issue Authentication had before it was enabled). Deploy
-  `storage.rules` after that with `firebase deploy --only storage`. Only Settings' logo upload needs this —
-  everything else works without it.
-- Razorpay and MSG91 secrets are placeholders (see `config.ts` above) — real accounts don't exist yet.
+### Pending — ordered by what unblocks the most
 
-Note for local development in this sandbox: the Firebase CLI's bundled npm fails on the `predeploy` build
-hook here specifically (`Cannot read properties of undefined (reading 'stdin')` — a stdio quirk of this
-sandboxed shell, not a real bug) — work around it by running `npm run build` inside `functions/` yourself
-first. This does not happen in a normal terminal.
+1. **Storage not initialized.** No CLI/API path for first-time bucket creation (same class of issue
+   Authentication had before it was enabled) — visit
+   `https://console.firebase.google.com/project/hyperdynamics-loyalty/storage`, click "Get Started," then
+   `firebase deploy --only storage`. Only blocks Settings' logo upload; nothing else needs it.
+2. **Real Razorpay account.** `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` are
+   currently placeholder values (`placeholder-not-yet-real`). Once real: `firebase functions:secrets:set
+   <NAME>` for each, then register the webhook URL
+   (`https://us-central1-hyperdynamics-loyalty.cloudfunctions.net/razorpayWebhook`) in the Razorpay dashboard
+   with the same webhook secret. Until then, the actual "pay ₹4,999" flow doesn't complete.
+3. **Real MSG91 account.** `MSG91_MANAGED_AUTH_KEY` is also a placeholder — needed for the "managed by us" OTP
+   gateway option to send real SMS. (BYO gateway businesses supply their own key via Settings regardless.)
+4. **Node.js 20 deprecation.** Every Functions deploy warns that Node 20 is decommissioned 2026-10-30. Bump
+   `functions/package.json`'s `engines.node` to `"22"` and redeploy sometime before then.
+5. **No local emulator wiring.** `main.dart` always talks to production Firebase; there's no debug-flag path
+   to point the app at `firebase emulators:start` for local dev without touching real data.
+6. **Android untested end-to-end.** Blocked locally only by unaccepted SDK licenses
+   (`flutter doctor --android-licenses`, an interactive step) — not a code issue, but it means the Android
+   build has only been analyzed/compiled, never actually run on a device/emulator (unlike web and iOS, both
+   verified running).
 
-- Firebase emulator connection isn't wired into `main.dart` yet — add it (behind a debug check) before relying
-  on `firebase emulators:start` for local testing.
-- Android builds require accepting SDK licenses locally (`flutter doctor --android-licenses`) — not something
-  to run non-interactively.
+### Notes for whoever picks this up
+
+- Sandbox-specific quirk (won't happen in a normal terminal): the Firebase CLI's bundled npm fails on the
+  `predeploy` build hook here (`Cannot read properties of undefined (reading 'stdin')`). Work around it by
+  running `npm run build` inside `functions/` yourself first, temporarily dropping `predeploy` from
+  `firebase.json`, deploying, then restoring it.
+- A brand-new Firebase project's *very first* Cloud Functions deploy is expected to need 2–4 retries as GCP
+  APIs (Secret Manager, Eventarc, Cloud Run, Pub/Sub, Cloud Scheduler) finish enabling and propagating IAM
+  grants — retry the same `firebase deploy --only functions` command; it's not a code problem.
+- Cost estimate (Blaze free tier + usage-based pricing): Firebase/GCP infra cost stays low even at a fairly
+  aggressive scale (~$30–35/month for 1,000 active businesses doing 100 ledger ops/day each) — the free tier
+  covers ~200K ledger transactions/month before Firestore write charges even start. The costs that actually
+  scale with revenue are **outside** Firebase's bill: Razorpay's ~2%+GST per onboarding payment, and MSG91 SMS
+  at ~₹0.18–0.25/message for OTP-verified redemptions (this is the one to watch if OTP-add-on adoption and
+  redeem volume are both high — it's billed through to the business per the Settings copy, not absorbed).
