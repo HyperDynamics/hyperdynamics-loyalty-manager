@@ -30,4 +30,4 @@ export const APP_BASE_URL = defineString("APP_BASE_URL", {
   default: "https://hyperdynamics-loyalty.web.app",
 });
 
-export const ONBOARDING_FEE_PAISE = 500000; // ₹5,000, in the smallest currency unit Razorpay expects
+export const ONBOARDING_FEE_PAISE = 499900; // ₹4,999, in the smallest currency unit Razorpay expects

@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this project is
 
 **HyperDynamics Loyalty Manager** — a multi-tenant SaaS admin tool for merchants to run a customer
-loyalty-points program: pay a flat ₹5,000 onboarding fee, log in, then Earn points for customers on a bill,
+loyalty-points program: pay a flat ₹4,999 onboarding fee, log in, then Earn points for customers on a bill,
 Redeem points (with an optional paid OTP-verification add-on), and reverse/correct past transactions.
 
 Stack: **Flutter** (iOS + Android + Web, one codebase) + **Firebase** (Auth, Firestore, Cloud Functions,
@@ -84,8 +84,11 @@ Admin SDK (Cloud Functions) can touch them. Business profile fields (name/logo/r
 choice) are simple enough to be direct, rule-guarded client writes (field allow-list in `firestore.rules`).
 
 Cloud Functions (`functions/src/`, exported from `index.ts`):
-- `auth.ts` — `resolveBusinessLoginEmail`: login is by "business id", not email, so this resolves it to the
-  synthetic login email minted at provisioning (`{businessId}@<LOGIN_EMAIL_DOMAIN>`), rate-limited.
+- Login is by "business id", not email; Firebase Auth only speaks email/password. Provisioning mints each
+  business a synthetic login email `{businessId}@<LOGIN_EMAIL_DOMAIN>`. There's deliberately **no Cloud
+  Function to resolve it** — `lib/data/auth_repository.dart` computes the same email client-side (it's a
+  deterministic, non-secret string), so login/forgot-password work independently of Cloud Functions/Blaze
+  being live. Keep `loginEmailDomain` there in sync with `LOGIN_EMAIL_DOMAIN`'s default in `config.ts`.
 - `payments.ts` + `provisioning.ts` — `createOnboardingPaymentLink` (real Razorpay Payment Links API) and
   `razorpayWebhook` (HMAC-verifies the webhook, then provisions the business: mints business id + temp
   password, creates the Firebase Auth user + `businessId` custom claim, creates the `businesses/{id}` doc,
@@ -131,10 +134,16 @@ Deployed:
   push to `main` via `.github/workflows/deploy-pages.yml`. Kept alongside Firebase Hosting as a second,
   zero-config mirror (doesn't need Firebase billing state to stay up); Firebase Hosting is still the
   canonical URL once Functions go live, since that's the domain Razorpay's callback is wired to.
-- Both currently only show the pre-auth marketing pages working end-to-end — login and every authed screen
-  need Cloud Functions, which aren't deployed yet (see below).
+- Login itself no longer needs Cloud Functions (see above), but Earn/Redeem/Correction/Settings-gateway-save
+  still do — those will error until Functions are deployed (see below).
 
 Not yet deployed — each needs one manual, one-time action outside what a CLI/agent can do:
+- **Authentication** — not initialized on this project at all yet (`firebase auth:import`/`auth:export` both
+  fail with `CONFIGURATION_NOT_FOUND`). A human needs to visit
+  `https://console.firebase.google.com/project/hyperdynamics-loyalty/authentication` once and enable it (turn
+  on the Email/Password sign-in provider). No CLI/API path exists for this first-time setup, same as Storage
+  below. Once it's on, a demo login can be created without needing Blaze/Cloud Functions at all — see
+  scratch note below.
 - **Storage** — needs a human to click "Get Started" once at
   `https://console.firebase.google.com/project/hyperdynamics-loyalty/storage` (no CLI equivalent for
   first-time bucket provisioning). Deploy `storage.rules` after that with `firebase deploy --only storage`.
@@ -144,6 +153,19 @@ Not yet deployed — each needs one manual, one-time action outside what a CLI/a
   `firebase deploy --only functions`.
 - Razorpay and MSG91 don't have real accounts/keys yet (see `config.ts`) — the integration code is real, just
   unwired. Once you have them, `firebase functions:secrets:set <NAME>` for each secret in `config.ts`.
+
+**Creating a demo login without Blaze**: once Authentication is enabled, `firebase auth:import` can create a
+business account directly — no Admin SDK/service-account credentials needed, since it authenticates as the
+CLI's own login. Build a `users.json` with `localId`, `email` (`{businessId}@login.hyperdynamics.app`),
+`passwordHash` (**base64 of the raw bcrypt hash bytes** — `accountImporter.js`'s `toWebSafeBase64` only
+swaps `/`/`+` for URL-safe chars, it does not encode; a `htpasswd -bnBC 10 "" '<password>'` bcrypt hash needs
+an explicit `base64` pass first), and `customAttributes` (JSON-stringified, e.g. `{"businessId":"demo"}`) —
+then `firebase auth:import users.json --hash-algo=BCRYPT --project=hyperdynamics-loyalty`. Also create the
+matching `businesses/{businessId}` Firestore doc (client writes to that collection are allowed for the
+owning business per `firestore.rules`, but the *first* write establishing ownership has to happen before the
+user is signed in as that business — easiest is a one-off authenticated write via the Firebase console's
+Firestore data tab, or temporarily relaxing the rule). Don't commit the `users.json` (it contains a password
+hash) — keep it outside the repo.
 
 Note for local development in this sandbox: the Firebase CLI's bundled npm fails on the `predeploy` build
 hook here specifically (`Cannot read properties of undefined (reading 'stdin')` — a stdio quirk of this

@@ -10,7 +10,7 @@ class PaymentRepository {
   final FirebaseFirestore _db;
   final FirebaseFunctions _functions;
 
-  /// Creates a Razorpay Payment Link for the flat ₹5,000 onboarding fee and
+  /// Creates a Razorpay Payment Link for the flat ₹4,999 onboarding fee and
   /// a `paymentOrders` doc to correlate the later webhook. Returns the
   /// hosted Razorpay checkout URL to redirect to (external, not embedded).
   Future<({String referenceId, String checkoutUrl})> createOnboardingPaymentLink() async {

@@ -1,4 +1,3 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 /// Generic, non-leaking failure message — deliberately doesn't distinguish
@@ -13,50 +12,52 @@ class AuthFailure implements Exception {
 
 const _invalidCredentialsMessage = 'invalid business id or password. please check and try again.';
 
+/// Domain used to mint synthetic login emails for "business id" auth, e.g.
+/// `mintmax@login.hyperdynamics.app`. Must match `LOGIN_EMAIL_DOMAIN`'s
+/// default in `functions/src/config.ts` — provisioning (the Razorpay
+/// webhook) mints the Firebase Auth user with exactly this email.
+const loginEmailDomain = 'login.hyperdynamics.app';
+
 /// Login here is by "business id", not email. Firebase Auth only speaks
 /// email/password, so every business is provisioned (server-side, at
-/// payment-webhook time) with a synthetic login email; this repository
-/// resolves business id -> that email via a callable before signing in.
+/// payment-webhook time) with a synthetic login email of the form
+/// `{businessId}@$loginEmailDomain`. The email is a deterministic function
+/// of the business id — not a secret — so it's computed directly here
+/// rather than resolved via a Cloud Function: that keeps login (and
+/// "forgot password") working independently of Cloud Functions/Blaze being
+/// live, and Firebase Auth's own brute-force throttling and (by default)
+/// email-enumeration-safe error codes already cover what a custom resolver
+/// would have added.
 class AuthRepository {
-  AuthRepository({FirebaseAuth? auth, FirebaseFunctions? functions})
-      : _auth = auth ?? FirebaseAuth.instance,
-        _functions = functions ?? FirebaseFunctions.instance;
+  AuthRepository({FirebaseAuth? auth}) : _auth = auth ?? FirebaseAuth.instance;
 
   final FirebaseAuth _auth;
-  final FirebaseFunctions _functions;
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
 
   User? get currentUser => _auth.currentUser;
 
-  Future<String> _resolveLoginEmail(String businessId) async {
-    try {
-      final result = await _functions
-          .httpsCallable('resolveBusinessLoginEmail')
-          .call<Map<String, dynamic>>({'businessId': businessId.trim().toLowerCase()});
-      final email = result.data['email'] as String?;
-      if (email == null || email.isEmpty) throw const AuthFailure(_invalidCredentialsMessage);
-      return email;
-    } on FirebaseFunctionsException {
-      throw const AuthFailure(_invalidCredentialsMessage);
-    }
-  }
+  String _loginEmail(String businessId) => '${businessId.trim().toLowerCase()}@$loginEmailDomain';
 
   Future<void> login({required String businessId, required String password}) async {
     if (businessId.trim().isEmpty || password.isEmpty) {
       throw const AuthFailure('enter both your business id and password to continue.');
     }
-    final email = await _resolveLoginEmail(businessId);
     try {
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      await _auth.signInWithEmailAndPassword(email: _loginEmail(businessId), password: password);
     } on FirebaseAuthException {
       throw const AuthFailure(_invalidCredentialsMessage);
     }
   }
 
   Future<void> sendPasswordReset(String businessId) async {
-    final email = await _resolveLoginEmail(businessId);
-    await _auth.sendPasswordResetEmail(email: email);
+    try {
+      await _auth.sendPasswordResetEmail(email: _loginEmail(businessId));
+    } on FirebaseAuthException {
+      // Swallowed deliberately — the caller shows the same "reset link
+      // sent" message regardless, so a nonexistent business id can't be
+      // distinguished from a real one via this flow either.
+    }
   }
 
   Future<void> changePassword({required String currentPassword, required String newPassword}) async {

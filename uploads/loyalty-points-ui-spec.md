@@ -8,7 +8,7 @@ Scope: functional requirements per screen and component only. Visual styling fol
 
 **Components:**
 - **Header** — logo, product name
-- **Hero block** — headline, one-line value prop, "Get Started — ₹5,000" CTA button
+- **Hero block** — headline, one-line value prop, "Get Started — ₹4,999" CTA button
 - **Pricing card** — states the flat ₹5k fee, what's included (Earn, Redeem, Correction Tool), note that OTP is a paid add-on
 - **CTA Button** → triggers Razorpay Payment Link (external redirect, not embedded)
 - **Footer** — contact/support link

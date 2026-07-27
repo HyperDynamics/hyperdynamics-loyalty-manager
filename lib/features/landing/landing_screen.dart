@@ -128,7 +128,7 @@ class _Hero extends StatelessWidget {
           style: AppTypography.body.copyWith(color: AppColors.textSecondary, fontSize: 18, height: 1.5),
         ),
         const SizedBox(height: 32),
-        AppButton(label: 'get started — ₹5,000', size: AppButtonSize.lg, onPressed: onGetStarted),
+        AppButton(label: 'get started — ₹4,999', size: AppButtonSize.lg, onPressed: onGetStarted),
       ],
     );
   }
@@ -150,7 +150,7 @@ class _PricingCard extends StatelessWidget {
         children: [
           const AppBadge(label: 'lifetime'),
           const SizedBox(height: 16),
-          Text('₹5,000', style: AppTypography.figureXl),
+          Text('₹4,999', style: AppTypography.figureXl),
           const SizedBox(height: 4),
           Text('one-time · flat fee', style: AppTypography.xs2),
           const SizedBox(height: 22),
@@ -168,7 +168,7 @@ class _PricingCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text('otp verification for redemptions is a paid add-on.', style: AppTypography.xs2.copyWith(height: 1.5)),
           const SizedBox(height: 22),
-          AppButton(label: 'get started — ₹5,000', block: true, size: AppButtonSize.lg, onPressed: onGetStarted),
+          AppButton(label: 'get started — ₹4,999', block: true, size: AppButtonSize.lg, onPressed: onGetStarted),
         ],
       ),
     );

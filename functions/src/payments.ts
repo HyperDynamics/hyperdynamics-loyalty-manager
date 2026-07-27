@@ -7,7 +7,7 @@ import { provisionBusiness } from "./provisioning";
 import { APP_BASE_URL, ONBOARDING_FEE_PAISE, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET } from "./config";
 
 /**
- * Landing page "get started — ₹5,000" button. Creates a `paymentOrders` doc
+ * Landing page "get started — ₹4,999" button. Creates a `paymentOrders` doc
  * plus a real Razorpay-hosted Payment Link (external redirect, not
  * embedded, per spec) whose `callback_url` brings the browser back to our
  * `/payment/confirm` page with this order's reference id.

@@ -1,4 +1,3 @@
-export { resolveBusinessLoginEmail } from "./auth";
 export { createOnboardingPaymentLink, razorpayWebhook } from "./payments";
 export { earnCredit } from "./earn";
 export { sendOtp } from "./otp";

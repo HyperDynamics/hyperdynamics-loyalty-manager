@@ -55,10 +55,7 @@ service cloud.firestore {
       }
     }
 
-    // Functions-only bookkeeping collections.
-    match /loginRateLimits/{document=**} {
-      allow read, write: if false;
-    }
+    // Functions-only bookkeeping collection (Trigger Email extension).
     match /mail/{document=**} {
       allow read, write: if false;
     }
