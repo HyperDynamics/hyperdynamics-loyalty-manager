@@ -23,9 +23,11 @@ export const LOGIN_EMAIL_DOMAIN = defineString("LOGIN_EMAIL_DOMAIN", {
 });
 
 // Base URL of the deployed Flutter web app, used to build the Razorpay
-// Payment Link's callback_url. Update once Firebase Hosting is live.
+// Payment Link's callback_url. This is Firebase Hosting (not the GitHub
+// Pages demo mirror) since it shares the project's domain/SSL and is what
+// Razorpay's webhook flow assumes.
 export const APP_BASE_URL = defineString("APP_BASE_URL", {
-  default: "https://hyperdynamics-loyalty-placeholder.web.app",
+  default: "https://hyperdynamics-loyalty.web.app",
 });
 
 export const ONBOARDING_FEE_PAISE = 500000; // ₹5,000, in the smallest currency unit Razorpay expects

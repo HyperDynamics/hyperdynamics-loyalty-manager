@@ -122,6 +122,17 @@ generated config — not placeholders.
 
 Deployed:
 - Firestore database (region `asia-south1`), `firestore.rules`, `firestore.indexes.json`.
+- **Firebase Hosting** (`flutter build web` + `firebase deploy --only hosting`) at
+  **https://hyperdynamics-loyalty.web.app** — same domain family as the rest of the Firebase project; this
+  is what `APP_BASE_URL` in `config.ts` assumes for the Razorpay callback once Functions are live. Re-deploy
+  any time with `flutter build web --release && firebase deploy --only hosting`.
+- **GitHub Pages** (source repo: `https://github.com/HyperDynamics/hyperdynamics-loyalty-manager`, public) at
+  **https://hyperdynamics.github.io/hyperdynamics-loyalty-manager/** — auto-builds and redeploys on every
+  push to `main` via `.github/workflows/deploy-pages.yml`. Kept alongside Firebase Hosting as a second,
+  zero-config mirror (doesn't need Firebase billing state to stay up); Firebase Hosting is still the
+  canonical URL once Functions go live, since that's the domain Razorpay's callback is wired to.
+- Both currently only show the pre-auth marketing pages working end-to-end — login and every authed screen
+  need Cloud Functions, which aren't deployed yet (see below).
 
 Not yet deployed — each needs one manual, one-time action outside what a CLI/agent can do:
 - **Storage** — needs a human to click "Get Started" once at
@@ -131,8 +142,6 @@ Not yet deployed — each needs one manual, one-time action outside what a CLI/a
   (pay-as-you-go, needs a billing account) at
   `https://console.firebase.google.com/project/hyperdynamics-loyalty/usage/details`. After upgrading:
   `firebase deploy --only functions`.
-- **Hosting** — not deployed yet either; `firebase deploy --only hosting` after `flutter build web`, once
-  there's something worth putting at a public URL (e.g. once Functions are live too).
 - Razorpay and MSG91 don't have real accounts/keys yet (see `config.ts`) — the integration code is real, just
   unwired. Once you have them, `firebase functions:secrets:set <NAME>` for each secret in `config.ts`.
 
