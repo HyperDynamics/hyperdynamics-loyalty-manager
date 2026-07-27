@@ -23,6 +23,11 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # Pinned to the exact version this app was built and verified
+          # against locally (flutter analyze/test/build all passed) —
+          # floating on "stable" pulled a newer release with a web/dart2js
+          # regression (CupertinoPageTransitionsBuilder unresolved).
+          flutter-version: 3.41.7
 
       - run: flutter pub get
 
