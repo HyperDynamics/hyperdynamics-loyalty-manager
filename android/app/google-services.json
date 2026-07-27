@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "80499955330",
+    "project_id": "hyperdynamics-loyalty",
+    "storage_bucket": "hyperdynamics-loyalty.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:80499955330:android:b3abe275e9541fd4e9c69b",
+        "android_client_info": {
+          "package_name": "com.hyperdynamics.loyalty_manager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyApVD1PaCwj40xqz54SNEgPEvDNkTEGAUc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

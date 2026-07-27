@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/sterling-personal-cfo-design-system-12349577-69cd-4e9b-ba4a-51f1b15eb379/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/sterling-personal-cfo-design-system-12349577-69cd-4e9b-ba4a-51f1b15eb379/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/sterling-personal-cfo-design-system-12349577-69cd-4e9b-ba4a-51f1b15eb379/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/sterling-personal-cfo-design-system-12349577-69cd-4e9b-ba4a-51f1b15eb379/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/sterling-personal-cfo-design-system-12349577-69cd-4e9b-ba4a-51f1b15eb379/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/sterling-personal-cfo-design-system-12349577-69cd-4e9b-ba4a-51f1b15eb379/tokens/motion.css">
+  <link rel="stylesheet" href="_ds/sterling-personal-cfo-design-system-12349577-69cd-4e9b-ba4a-51f1b15eb379/tokens/base.css">
+  <link rel="stylesheet" href="_ds/sterling-personal-cfo-design-system-12349577-69cd-4e9b-ba4a-51f1b15eb379/styles.css">
+  <script src="_ds/sterling-personal-cfo-design-system-12349577-69cd-4e9b-ba4a-51f1b15eb379/_ds_bundle.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--ink-900); }
+    a { color: var(--text-link); text-decoration: none; }
+    a:hover { color: var(--mint-300); }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: var(--ink-400); border-radius: 999px; }
+    @keyframes hdlm-toast { from { transform: translate(-50%, 24px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    @keyframes hdlm-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes hdlm-pop { from { transform: translateY(14px) scale(.97); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+    @keyframes hdlm-spin { to { transform: rotate(360deg); } }
+    @keyframes hdlm-aura { 0%,100% { opacity:.55; transform: scale(1); } 50% { opacity:.85; transform: scale(1.08); } }
+  </style>
+</helmet>
+
+<div style="min-height:100vh; background:var(--bg-app); color:var(--text-primary); font-family:var(--font-sans); position:relative;">
+
+  <!-- ============ A. LANDING ============ -->
+  <sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
+    <div style="max-width:1160px; margin:0 auto; padding:26px 24px 80px;">
+      <header style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Coin" symbol="H" tone="mint" size="{{ 42 }}" hint-size="42px,42px"></x-import>
+          <div style="display:flex; flex-direction:column; line-height:1;">
+            <span style="font-size:19px; font-weight:800; letter-spacing:-0.02em;">hyperdynamics</span>
+            <span style="font-size:12px; font-weight:600; color:var(--text-tertiary); letter-spacing:0.02em;">loyalty manager</span>
+          </div>
+        </div>
+        <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="ghost" size="sm" on-click="{{ goLoginPage }}" hint-size="120px,42px">admin login</x-import>
+      </header>
+
+      <section style="position:relative; padding:74px 0 40px; text-align:center;">
+        <div style="position:absolute; inset:-40px 0 auto; margin:0 auto; width:520px; height:420px; background:var(--grad-aura-mint); filter:blur(20px); animation:hdlm-aura 7s ease-in-out infinite; z-index:0; pointer-events:none;"></div>
+        <div style="position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:22px;">
+          <span style="font-size:12px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:var(--mint-400);">loyalty, handled</span>
+          <h1 style="margin:0; font-size:clamp(44px,7vw,92px); font-weight:900; letter-spacing:-0.035em; line-height:0.98; max-width:14ch; text-wrap:balance;">rewards for<br>good customers.</h1>
+          <p style="margin:0; max-width:52ch; font-size:19px; font-weight:500; color:var(--text-secondary); line-height:1.5;">stand up a points programme for your business in minutes. earn, redeem, and fix mistakes from one clean admin console. no app to build.</p>
+          <div style="margin-top:10px;">
+            <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="primary" size="lg" on-click="{{ startPayment }}" hint-size="260px,60px">get started — ₹5,000</x-import>
+          </div>
+          <span style="font-size:13px; color:var(--text-tertiary);">flat one-time fee · secure checkout via razorpay</span>
+        </div>
+      </section>
+
+      <section style="display:grid; grid-template-columns:{{ landingCols }}; gap:22px; margin-top:20px; align-items:start;">
+        <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" variant="elevated" padding="{{ 34 }}" glow="{{ true }}" hint-size="100%,360px">
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+              <span style="font-size:13px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-tertiary);">one plan</span>
+              <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Badge" tone="mint" hint-size="90px,26px">lifetime</x-import>
+            </div>
+            <div style="display:flex; align-items:flex-end; gap:8px;">
+              <span style="font-size:56px; font-weight:900; letter-spacing:-0.03em; font-variant-numeric:tabular-nums;">₹5,000</span>
+              <span style="font-size:15px; font-weight:600; color:var(--text-tertiary); padding-bottom:12px;">flat, one-time</span>
+            </div>
+            <div style="height:1px; background:var(--border-subtle);"></div>
+            <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:13px;">
+              <li style="display:flex; align-items:center; gap:12px; font-size:15px; font-weight:600;"><span style="color:var(--mint-400); font-weight:800;">✓</span> earn engine — credit points on every bill</li>
+              <li style="display:flex; align-items:center; gap:12px; font-size:15px; font-weight:600;"><span style="color:var(--mint-400); font-weight:800;">✓</span> redeem flow — balance lookup &amp; spend</li>
+              <li style="display:flex; align-items:center; gap:12px; font-size:15px; font-weight:600;"><span style="color:var(--mint-400); font-weight:800;">✓</span> correction tool — reverse any mistake</li>
+              <li style="display:flex; align-items:center; gap:12px; font-size:15px; font-weight:600; color:var(--text-secondary);"><span style="color:var(--gold-400); font-weight:800;">+</span> otp verification — <span style="color:var(--gold-400);">paid add-on</span></li>
+            </ul>
+            <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="primary" size="lg" block="{{ true }}" on-click="{{ startPayment }}" hint-size="100%,60px">get started — ₹5,000</x-import>
+          </div>
+        </x-import>
+
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 24 }}" hint-size="100%,120px">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <span style="font-size:16px; font-weight:800; letter-spacing:-0.01em;">set your own ratio</span>
+              <span style="font-size:14px; font-weight:500; color:var(--text-secondary); line-height:1.5;">decide how many rupees earn a point. change it any time from settings.</span>
+            </div>
+          </x-import>
+          <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 24 }}" hint-size="100%,120px">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <span style="font-size:16px; font-weight:800; letter-spacing:-0.01em;">no customer app</span>
+              <span style="font-size:14px; font-weight:500; color:var(--text-secondary); line-height:1.5;">your staff run everything from the admin console. customers just give a phone number.</span>
+            </div>
+          </x-import>
+          <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 24 }}" hint-size="100%,120px">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <span style="font-size:16px; font-weight:800; letter-spacing:-0.01em;">login details by email</span>
+              <span style="font-size:14px; font-weight:500; color:var(--text-secondary); line-height:1.5;">finish checkout and we email your admin credentials right away.</span>
+            </div>
+          </x-import>
+        </div>
+      </section>
+
+      <footer style="margin-top:64px; padding-top:24px; border-top:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+        <span style="font-size:13px; color:var(--text-tertiary);">© hyperdynamics · loyalty manager</span>
+        <a href="mailto:support@hyperdynamics.in" style="font-size:14px; font-weight:600;">contact support</a>
+      </footer>
+    </div>
+  </sc-if>
+
+  <!-- ============ B. POST-PAYMENT CONFIRMATION ============ -->
+  <sc-if value="{{ isConfirm }}">
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px;">
+      <div style="position:absolute; top:24px; left:50%; transform:translateX(-50%); display:flex; gap:10px; font-size:12px;">
+        <a href="#" onClick="{{ setConfirmSuccess }}" style="color:{{ confirmTabSuccess }};">success</a>
+        <span style="color:var(--text-disabled);">·</span>
+        <a href="#" onClick="{{ setConfirmFail }}" style="color:{{ confirmTabFail }};">failure / pending</a>
+      </div>
+
+      <sc-if value="{{ confirmSuccess }}">
+        <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" variant="elevated" padding="{{ 40 }}" glow="{{ true }}" hint-size="440px,420px">
+          <div style="width:min(440px,84vw); display:flex; flex-direction:column; align-items:center; gap:22px; text-align:center;">
+            <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Coin" symbol="✓" tone="mint" size="{{ 76 }}" spin="{{ true }}" hint-size="76px,76px"></x-import>
+            <h2 style="margin:0; font-size:30px; font-weight:900; letter-spacing:-0.02em;">payment received.</h2>
+            <p style="margin:0; font-size:16px; font-weight:500; color:var(--text-secondary); line-height:1.55;">your loyalty manager is live. we've emailed your admin login details to <span style="color:var(--text-primary); font-weight:700;">you@mintmax.in</span> — check your inbox to sign in.</p>
+            <div style="width:100%; padding:14px 18px; background:var(--surface-input); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; font-size:14px;">
+              <span style="color:var(--text-tertiary);">order id</span>
+              <span style="font-weight:700; font-variant-numeric:tabular-nums;">rzp_HDLM_8842019</span>
+            </div>
+            <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="primary" size="lg" block="{{ true }}" on-click="{{ goLoginPage }}" hint-size="100%,60px">go to admin login</x-import>
+          </div>
+        </x-import>
+      </sc-if>
+
+      <sc-if value="{{ confirmFailure }}">
+        <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" variant="elevated" padding="{{ 40 }}" hint-size="440px,420px">
+          <div style="width:min(440px,84vw); display:flex; flex-direction:column; align-items:center; gap:22px; text-align:center;">
+            <div style="width:76px; height:76px; border-radius:999px; display:flex; align-items:center; justify-content:center; background:var(--warn-dim); border:1.5px solid var(--warn); color:var(--warn); font-size:38px; font-weight:800;">!</div>
+            <h2 style="margin:0; font-size:30px; font-weight:900; letter-spacing:-0.02em;">payment not confirmed.</h2>
+            <p style="margin:0; font-size:16px; font-weight:500; color:var(--text-secondary); line-height:1.55;">we couldn't confirm your payment yet. if money was deducted, it will auto-refund within 5–7 days. no login has been created.</p>
+            <div style="width:100%; padding:14px 18px; background:var(--surface-input); border-radius:var(--radius-md); font-size:14px; text-align:left; color:var(--text-secondary); line-height:1.5;">still stuck? email <a href="mailto:support@hyperdynamics.in">support@hyperdynamics.in</a> with your payment reference and we'll sort it fast.</div>
+            <div style="display:flex; gap:12px; width:100%;">
+              <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="outline" size="lg" block="{{ true }}" on-click="{{ goLanding }}" hint-size="100%,60px">retry payment</x-import>
+              <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="primary" size="lg" block="{{ true }}" on-click="{{ goLoginPage }}" hint-size="100%,60px">contact support</x-import>
+            </div>
+          </div>
+        </x-import>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- ============ C. LOGIN ============ -->
+  <sc-if value="{{ isLogin }}">
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px;">
+      <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" variant="elevated" padding="{{ 38 }}" hint-size="420px,460px">
+        <div style="width:min(400px,84vw); display:flex; flex-direction:column; gap:22px;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center;">
+            <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Coin" symbol="H" tone="mint" size="{{ 52 }}" hint-size="52px,52px"></x-import>
+            <div>
+              <h2 style="margin:0; font-size:24px; font-weight:900; letter-spacing:-0.02em;">admin sign in</h2>
+              <p style="margin:6px 0 0; font-size:14px; color:var(--text-tertiary);">hyperdynamics loyalty manager</p>
+            </div>
+          </div>
+
+          <sc-if value="{{ loginError }}">
+            <div style="display:flex; align-items:flex-start; gap:10px; padding:12px 14px; background:var(--loss-dim); border:1px solid var(--loss); border-radius:var(--radius-md); font-size:13px; font-weight:600; color:#ffb9c4; line-height:1.4;">
+              <span style="font-weight:800;">✕</span><span>{{ loginError }}</span>
+            </div>
+          </sc-if>
+
+          <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="business id" placeholder="your business id" value="{{ loginId }}" on-change="{{ onLoginId }}" hint-size="100%,78px"></x-import>
+
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:13px; font-weight:600; color:var(--text-secondary);">password</span>
+              <a href="#" onClick="{{ toggleShowPw }}" style="font-size:12px; font-weight:600;">{{ showPwLabel }}</a>
+            </div>
+            <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" type="{{ pwType }}" placeholder="••••••••" value="{{ loginPw }}" on-change="{{ onLoginPw }}" hint-size="100%,52px"></x-import>
+          </div>
+
+          <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="primary" size="lg" block="{{ true }}" on-click="{{ doLogin }}" hint-size="100%,60px">log in</x-import>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; font-size:13px;">
+            <a href="#" onClick="{{ forgotPw }}">forgot password?</a>
+            <span style="color:var(--text-disabled);">demo: mintmax / sterling</span>
+          </div>
+        </div>
+      </x-import>
+    </div>
+  </sc-if>
+
+  <!-- ============ APP SHELL (D–H) ============ -->
+  <sc-if value="{{ isApp }}">
+    <div style="{{ appShellStyle }}">
+
+      <!-- SIDEBAR (wide) -->
+      <sc-if value="{{ showSidebar }}">
+        <aside style="width:248px; flex:none; height:100vh; position:sticky; top:0; border-right:1px solid var(--border-subtle); background:var(--ink-900); padding:24px 16px; display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; align-items:center; gap:12px; padding:6px 12px 20px;">
+            <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Coin" symbol="H" tone="mint" size="{{ 34 }}" hint-size="34px,34px"></x-import>
+            <div style="display:flex; flex-direction:column; line-height:1.1;">
+              <span style="font-size:15px; font-weight:800; letter-spacing:-0.01em;">{{ businessName }}</span>
+              <span style="font-size:11px; font-weight:600; color:var(--text-tertiary);">loyalty manager</span>
+            </div>
+          </div>
+          <button onClick="{{ goDashboard }}" style="{{ navHome }}"><span style="display:inline-flex;" data-icon>⌂</span><span>home</span></button>
+          <button onClick="{{ goEarn }}" style="{{ navEarn }}"><span style="display:inline-flex;">＋</span><span>earn</span></button>
+          <button onClick="{{ goRedeem }}" style="{{ navRedeem }}"><span style="display:inline-flex;">★</span><span>redeem</span></button>
+          <button onClick="{{ goCorrection }}" style="{{ navHist }}"><span style="display:inline-flex;">↺</span><span>history &amp; correction</span></button>
+          <button onClick="{{ goSettings }}" style="{{ navSet }}"><span style="display:inline-flex;">⚙</span><span>settings</span></button>
+          <div style="flex:1;"></div>
+          <button onClick="{{ doLogout }}" style="display:flex; align-items:center; gap:12px; width:100%; padding:12px 16px; border-radius:var(--radius-md); background:transparent; border:none; cursor:pointer; font-family:var(--font-sans); font-weight:700; font-size:14px; color:var(--text-tertiary); text-align:left;"><span>⎋</span><span>log out</span></button>
+        </aside>
+      </sc-if>
+
+      <!-- MAIN -->
+      <main style="{{ mainStyle }}">
+        <div style="max-width:900px; margin:0 auto; width:100%;">
+
+          <!-- D. DASHBOARD -->
+          <sc-if value="{{ isDashboard }}">
+            <div style="display:flex; flex-direction:column; gap:24px;">
+              <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+                <div>
+                  <span style="font-size:12px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-tertiary);">dashboard</span>
+                  <h1 style="margin:6px 0 0; font-size:34px; font-weight:900; letter-spacing:-0.03em;">{{ businessName }}</h1>
+                </div>
+                <span style="font-size:13px; color:var(--text-tertiary);">{{ todayLabel }}</span>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;">
+                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.StatTile" label="earns today" value="{{ statEarnCount }}" accent="{{ true }}" hint-size="100%,120px"></x-import>
+                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.StatTile" label="redeems today" value="{{ statRedeemCount }}" hint-size="100%,120px"></x-import>
+                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.StatTile" label="points outstanding" value="{{ statOutstanding }}" hint-size="100%,120px"></x-import>
+              </div>
+
+              <div style="display:grid; grid-template-columns:{{ dashActionCols }}; gap:14px;">
+                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" variant="outline" interactive="{{ true }}" padding="{{ 22 }}" on-click="{{ goEarn }}" hint-size="100%,96px">
+                  <div style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:22px;">＋</span><span style="font-size:16px; font-weight:800;">credit points</span><span style="font-size:13px; color:var(--text-tertiary);">log a bill &amp; earn</span></div>
+                </x-import>
+                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" variant="outline" interactive="{{ true }}" padding="{{ 22 }}" on-click="{{ goRedeem }}" hint-size="100%,96px">
+                  <div style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:22px;">★</span><span style="font-size:16px; font-weight:800;">redeem points</span><span style="font-size:13px; color:var(--text-tertiary);">look up &amp; spend</span></div>
+                </x-import>
+                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" variant="outline" interactive="{{ true }}" padding="{{ 22 }}" on-click="{{ goCorrection }}" hint-size="100%,96px">
+                  <div style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:22px;">↺</span><span style="font-size:16px; font-weight:800;">fix a mistake</span><span style="font-size:13px; color:var(--text-tertiary);">reverse a txn</span></div>
+                </x-import>
+              </div>
+
+              <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 20 }}" hint-size="100%,320px">
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  <span style="font-size:13px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-tertiary); padding:0 8px 8px;">recent activity</span>
+                  <sc-for list="{{ dashRecent }}" as="t" hint-placeholder-count="4">
+                    <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.ListRow" title="{{ t.masked }}" subtitle="{{ t.sub }}" amount="{{ t.amountLabel }}" amount-tone="{{ t.tone }}" meta="{{ t.meta }}" avatar-name="{{ t.avatar }}" avatar-tone="{{ t.avatarTone }}" divider="{{ true }}" hint-size="100%,68px"></x-import>
+                  </sc-for>
+                </div>
+              </x-import>
+            </div>
+          </sc-if>
+
+          <!-- E. EARN -->
+          <sc-if value="{{ isEarn }}">
+            <div style="display:flex; flex-direction:column; gap:24px;">
+              <div>
+                <span style="font-size:12px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--mint-400);">earn</span>
+                <h1 style="margin:6px 0 0; font-size:34px; font-weight:900; letter-spacing:-0.03em;">credit points</h1>
+              </div>
+
+              <div style="display:grid; grid-template-columns:{{ earnCols }}; gap:20px; align-items:start;">
+                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 26 }}" hint-size="100%,360px">
+                  <div style="display:flex; flex-direction:column; gap:18px;">
+                    <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="customer phone number" placeholder="10-digit mobile" value="{{ earnPhone }}" on-change="{{ onEarnPhone }}" error="{{ earnPhoneError }}" input-mode="numeric" max-length="{{ 10 }}" hint-size="100%,78px"></x-import>
+                    <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="bill amount" prefix="₹" placeholder="0" value="{{ earnAmount }}" on-change="{{ onEarnAmount }}" input-mode="numeric" hint-size="100%,78px"></x-import>
+                    <div style="display:flex; align-items:center; gap:14px; padding:16px 18px; background:var(--surface-input); border-radius:var(--radius-md); border:1px dashed var(--border-soft);">
+                      <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Coin" symbol="★" tone="mint" size="{{ 40 }}" glow="{{ false }}" hint-size="40px,40px"></x-import>
+                      <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size:12px; font-weight:600; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.1em;">live preview</span>
+                        <span style="font-size:20px; font-weight:800; letter-spacing:-0.01em; font-variant-numeric:tabular-nums;">{{ earnPreview }}</span>
+                      </div>
+                    </div>
+                    <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="primary" size="lg" block="{{ true }}" disabled="{{ earnDisabled }}" on-click="{{ earnCredit }}" hint-size="100%,60px">credit points</x-import>
+                    <span style="font-size:12px; color:var(--text-tertiary); text-align:center;">ratio: ₹{{ ratio }} = 1 point · configurable in settings</span>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 20 }}" hint-size="100%,300px">
+                  <div style="display:flex; flex-direction:column; gap:6px;">
+                    <span style="font-size:13px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-tertiary); padding:0 8px 8px;">this session</span>
+                    <sc-if value="{{ earnEmpty }}">
+                      <div style="padding:28px 12px; text-align:center; color:var(--text-tertiary); font-size:14px;">no points credited yet this session.</div>
+                    </sc-if>
+                    <sc-for list="{{ earnEntriesView }}" as="e" hint-placeholder-count="0">
+                      <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.ListRow" title="{{ e.masked }}" subtitle="{{ e.sub }}" amount="{{ e.amountLabel }}" amount-tone="gain" meta="{{ e.meta }}" avatar-name="{{ e.avatar }}" avatar-tone="mint" trailing="{{ e.trailing }}" divider="{{ true }}" on-click="{{ e.onFix }}" hint-size="100%,68px"></x-import>
+                    </sc-for>
+                    <sc-if value="{{ earnHasEntries }}">
+                      <span style="font-size:12px; color:var(--text-disabled); padding:8px; text-align:center;">tap a row to correct it</span>
+                    </sc-if>
+                  </div>
+                </x-import>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- F. REDEEM -->
+          <sc-if value="{{ isRedeem }}">
+            <div style="display:flex; flex-direction:column; gap:24px;">
+              <div>
+                <span style="font-size:12px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--mint-400);">redeem</span>
+                <h1 style="margin:6px 0 0; font-size:34px; font-weight:900; letter-spacing:-0.03em;">redeem points</h1>
+              </div>
+
+              <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 24 }}" hint-size="100%,120px">
+                <div style="display:flex; gap:12px; align-items:flex-end;">
+                  <div style="flex:1;">
+                    <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="customer phone number" placeholder="10-digit mobile" value="{{ redeemPhone }}" on-change="{{ onRedeemPhone }}" input-mode="numeric" max-length="{{ 10 }}" hint-size="100%,78px"></x-import>
+                  </div>
+                  <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="ghost" size="lg" disabled="{{ lookupDisabled }}" on-click="{{ doLookup }}" hint-size="130px,52px">look up</x-import>
+                </div>
+                <span style="font-size:12px; color:var(--text-disabled); display:block; margin-top:6px;">try 9876543210 or 9911002200 · unknown numbers show the empty state</span>
+              </x-import>
+
+              <sc-if value="{{ lookupNone }}">
+                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" variant="outline" padding="{{ 30 }}" hint-size="100%,140px">
+                  <div style="display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center;">
+                    <span style="font-size:30px;">🔍</span>
+                    <span style="font-size:17px; font-weight:800;">no customer found</span>
+                    <span style="font-size:14px; color:var(--text-tertiary);">no account exists for {{ redeemMaskedTyped }}. check the number, or credit a bill first to enrol them.</span>
+                  </div>
+                </x-import>
+              </sc-if>
+
+              <sc-if value="{{ lookupFound }}">
+                <div style="display:grid; grid-template-columns:{{ redeemCols }}; gap:20px; align-items:start;">
+                  <div style="display:flex; flex-direction:column; gap:20px;">
+                    <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" variant="elevated" padding="{{ 26 }}" glow="{{ true }}" hint-size="100%,180px">
+                      <div style="display:flex; align-items:center; gap:18px;">
+                        <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Coin" symbol="★" tone="gold" size="{{ 64 }}" hint-size="64px,64px"></x-import>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                          <span style="font-size:14px; font-weight:600; color:var(--text-tertiary);">{{ custName }} · {{ custMasked }}</span>
+                          <span style="font-size:40px; font-weight:900; letter-spacing:-0.03em; font-variant-numeric:tabular-nums;">{{ custBalanceLabel }}</span>
+                          <span style="font-size:13px; color:var(--text-tertiary);">available balance</span>
+                        </div>
+                      </div>
+                    </x-import>
+
+                    <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 24 }}" hint-size="100%,260px">
+                      <div style="display:flex; flex-direction:column; gap:18px;">
+                        <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="points to redeem" prefix="★" placeholder="0" value="{{ redeemAmount }}" on-change="{{ onRedeemAmount }}" error="{{ redeemError }}" input-mode="numeric" hint-size="100%,78px"></x-import>
+
+                        <sc-if value="{{ showOtpRow }}">
+                          <div style="display:flex; flex-direction:column; gap:12px; padding:16px; background:var(--surface-input); border-radius:var(--radius-md); border:1px solid var(--border-soft);">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                              <span style="font-size:13px; font-weight:700; color:var(--gold-400);">otp verification required</span>
+                              <sc-if value="{{ otpNotSent }}">
+                                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="outline" size="sm" disabled="{{ sendOtpDisabled }}" on-click="{{ sendOtp }}" hint-size="120px,42px">send otp</x-import>
+                              </sc-if>
+                            </div>
+                            <sc-if value="{{ otpSent }}">
+                              <div style="display:flex; flex-direction:column; gap:10px;">
+                                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="enter otp sent to customer" placeholder="4-digit code" value="{{ otpValue }}" on-change="{{ onOtp }}" input-mode="numeric" max-length="{{ 4 }}" hint-size="100%,78px"></x-import>
+                                <span style="font-size:12px; color:var(--text-tertiary);">demo code: 1234 · <a href="#" onClick="{{ sendOtp }}">resend</a></span>
+                                <sc-if value="{{ otpFailed }}">
+                                  <div style="display:flex; flex-direction:column; gap:10px; padding:12px 14px; background:var(--warn-dim); border:1px solid var(--warn); border-radius:var(--radius-md);">
+                                    <span style="font-size:13px; font-weight:600; color:#ffd89a; line-height:1.4;">otp didn't verify. if the customer isn't receiving it, you can override — this is logged.</span>
+                                    <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="ghost" size="sm" on-click="{{ forceApprove }}" hint-size="100%,42px">force approve — logs as override</x-import>
+                                  </div>
+                                </sc-if>
+                              </div>
+                            </sc-if>
+                          </div>
+                        </sc-if>
+
+                        <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="primary" size="lg" block="{{ true }}" disabled="{{ redeemDisabled }}" on-click="{{ doRedeem }}" hint-size="100%,60px">{{ redeemBtnLabel }}</x-import>
+                      </div>
+                    </x-import>
+                  </div>
+
+                  <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 20 }}" hint-size="100%,260px">
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                      <span style="font-size:13px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-tertiary); padding:0 8px 8px;">visit history</span>
+                      <sc-if value="{{ custHistoryEmpty }}">
+                        <div style="padding:24px 12px; text-align:center; color:var(--text-tertiary); font-size:14px;">no visits recorded yet.</div>
+                      </sc-if>
+                      <sc-for list="{{ custHistoryView }}" as="h" hint-placeholder-count="0">
+                        <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.ListRow" title="{{ h.typeLabel }}" subtitle="{{ h.sub }}" amount="{{ h.amountLabel }}" amount-tone="{{ h.tone }}" meta="{{ h.meta }}" avatar-name="{{ h.avatar }}" avatar-tone="{{ h.avatarTone }}" divider="{{ true }}" hint-size="100%,66px"></x-import>
+                      </sc-for>
+                    </div>
+                  </x-import>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- G. CORRECTION -->
+          <sc-if value="{{ isCorrection }}">
+            <div style="display:flex; flex-direction:column; gap:24px;">
+              <div>
+                <span style="font-size:12px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--warn);">history &amp; correction</span>
+                <h1 style="margin:6px 0 0; font-size:34px; font-weight:900; letter-spacing:-0.03em;">fix a transaction</h1>
+              </div>
+
+              <div style="display:grid; grid-template-columns:{{ correctionCols }}; gap:20px; align-items:start;">
+                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 18 }}" hint-size="100%,420px">
+                  <div style="display:flex; flex-direction:column; gap:12px;">
+                    <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" prefix="🔍" placeholder="filter by phone number" value="{{ filter }}" on-change="{{ onFilter }}" input-mode="numeric" hint-size="100%,52px"></x-import>
+                    <div style="display:flex; flex-direction:column; gap:8px; max-height:440px; overflow:auto;">
+                      <sc-if value="{{ correctionEmpty }}">
+                        <div style="padding:24px 12px; text-align:center; color:var(--text-tertiary); font-size:14px;">no transactions match.</div>
+                      </sc-if>
+                      <sc-for list="{{ correctionView }}" as="t" hint-placeholder-count="5">
+                        <button onClick="{{ t.onSelect }}" style="{{ t.rowStyle }}">
+                          <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                            <span style="width:34px; height:34px; flex:none; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; background:{{ t.iconBg }}; color:{{ t.iconColor }};">{{ t.icon }}</span>
+                            <div style="display:flex; flex-direction:column; gap:2px; min-width:0; text-align:left;">
+                              <span style="font-size:14px; font-weight:700;">{{ t.typeLabel }} · {{ t.masked }}</span>
+                              <span style="font-size:12px; color:var(--text-tertiary);">{{ t.time }}</span>
+                            </div>
+                          </div>
+                          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex:none;">
+                            <span style="font-size:14px; font-weight:800; color:{{ t.amountColor }}; font-variant-numeric:tabular-nums;">{{ t.amountLabel }}</span>
+                            <span style="font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:{{ t.statusColor }};">{{ t.statusLabel }}</span>
+                          </div>
+                        </button>
+                      </sc-for>
+                    </div>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" variant="elevated" padding="{{ 26 }}" hint-size="100%,320px">
+                  <sc-if value="{{ noSelection }}">
+                    <div style="padding:40px 12px; text-align:center; display:flex; flex-direction:column; gap:8px; color:var(--text-tertiary);">
+                      <span style="font-size:30px;">↺</span>
+                      <span style="font-size:15px; font-weight:700; color:var(--text-secondary);">select a transaction</span>
+                      <span style="font-size:13px;">pick a row to view its full record and reverse it.</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ hasSelection }}">
+                    <div style="display:flex; flex-direction:column; gap:18px;">
+                      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                        <span style="font-size:12px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-tertiary);">transaction detail</span>
+                        <span style="font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:{{ selStatusColor }};">{{ selStatusLabel }}</span>
+                      </div>
+                      <div style="display:flex; flex-direction:column; gap:12px;">
+                        <div style="display:flex; justify-content:space-between; font-size:14px;"><span style="color:var(--text-tertiary);">type</span><span style="font-weight:700;">{{ selType }}</span></div>
+                        <div style="display:flex; justify-content:space-between; font-size:14px;"><span style="color:var(--text-tertiary);">phone</span><span style="font-weight:700; font-variant-numeric:tabular-nums;">{{ selMasked }}</span></div>
+                        <div style="display:flex; justify-content:space-between; font-size:14px;"><span style="color:var(--text-tertiary);">{{ selAmountRowLabel }}</span><span style="font-weight:700; font-variant-numeric:tabular-nums;">{{ selAmountValue }}</span></div>
+                        <div style="display:flex; justify-content:space-between; font-size:14px;"><span style="color:var(--text-tertiary);">points</span><span style="font-weight:700; font-variant-numeric:tabular-nums; color:{{ selPointsColor }};">{{ selPointsValue }}</span></div>
+                        <div style="display:flex; justify-content:space-between; font-size:14px;"><span style="color:var(--text-tertiary);">timestamp</span><span style="font-weight:700;">{{ selTime }}</span></div>
+                        <div style="display:flex; justify-content:space-between; font-size:14px;"><span style="color:var(--text-tertiary);">txn id</span><span style="font-weight:700; font-variant-numeric:tabular-nums;">{{ selId }}</span></div>
+                      </div>
+                      <div style="height:1px; background:var(--border-subtle);"></div>
+                      <sc-if value="{{ selReversible }}">
+                        <div style="display:flex; flex-direction:column; gap:10px;">
+                          <span style="font-size:13px; color:var(--text-tertiary); line-height:1.5;">reversing this will adjust {{ custName2 }}'s balance by {{ selReverseEffect }}. this can't be undone.</span>
+                          <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="danger" size="md" block="{{ true }}" on-click="{{ askReverse }}" hint-size="100%,48px">reverse this transaction</x-import>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ selAlreadyReversed }}">
+                        <div style="padding:14px; background:var(--loss-dim); border:1px solid var(--loss); border-radius:var(--radius-md); font-size:13px; font-weight:600; color:#ffb9c4;">already reversed — no further action available.</div>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+                </x-import>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- H. SETTINGS -->
+          <sc-if value="{{ isSettings }}">
+            <div style="display:flex; flex-direction:column; gap:24px; max-width:640px;">
+              <div>
+                <span style="font-size:12px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-tertiary);">settings</span>
+                <h1 style="margin:6px 0 0; font-size:34px; font-weight:900; letter-spacing:-0.03em;">business setup</h1>
+              </div>
+
+              <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 26 }}" hint-size="100%,280px">
+                <div style="display:flex; flex-direction:column; gap:18px;">
+                  <span style="font-size:15px; font-weight:800;">business profile</span>
+                  <div style="display:flex; align-items:center; gap:16px;">
+                    <div style="width:64px; height:64px; flex:none; border-radius:16px; background:var(--surface-input); border:1px dashed var(--border-strong); display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--text-tertiary);">↑</div>
+                    <div style="display:flex; flex-direction:column; gap:4px;"><span style="font-size:14px; font-weight:700;">logo</span><a href="#" onClick="{{ noop }}" style="font-size:13px;">upload image</a><span style="font-size:12px; color:var(--text-disabled);">png or svg, square</span></div>
+                  </div>
+                  <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="business name" value="{{ businessNameVal }}" on-change="{{ onBizName }}" hint-size="100%,78px"></x-import>
+                  <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="points ratio (₹ per 1 point)" prefix="₹" value="{{ ratioVal }}" on-change="{{ onRatio }}" input-mode="numeric" hint="{{ ratioHint }}" hint-size="100%,78px"></x-import>
+                  <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="primary" size="md" on-click="{{ saveSettings }}" hint-size="150px,48px">save profile</x-import>
+                </div>
+              </x-import>
+
+              <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 26 }}" hint-size="100%,200px">
+                <div style="display:flex; flex-direction:column; gap:18px;">
+                  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                      <span style="font-size:15px; font-weight:800;">otp verification</span>
+                      <span style="font-size:13px; color:var(--text-tertiary); line-height:1.5; max-width:42ch;">require a one-time code before redemptions. {{ otpAddonNote }}</span>
+                    </div>
+                    <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Toggle" checked="{{ otpEnabled }}" on-change="{{ toggleOtp }}" hint-size="52px,32px"></x-import>
+                  </div>
+
+                  <sc-if value="{{ otpEnabled }}">
+                    <div style="display:flex; flex-direction:column; gap:16px; padding-top:4px; border-top:1px solid var(--border-subtle);">
+                      <div style="display:flex; flex-direction:column; gap:8px; padding-top:14px;">
+                        <span style="font-size:13px; font-weight:600; color:var(--text-secondary);">sms gateway</span>
+                        <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.SegmentedControl" options="{{ gatewayOptions }}" value="{{ gateway }}" on-change="{{ onGateway }}" hint-size="100%,44px"></x-import>
+                      </div>
+                      <sc-if value="{{ gatewayByo }}">
+                        <div style="display:flex; flex-direction:column; gap:14px;">
+                          <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="api key" placeholder="your gateway api key" value="{{ apiKey }}" on-change="{{ onApiKey }}" hint-size="100%,78px"></x-import>
+                          <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="api secret" type="password" placeholder="••••••••" value="{{ apiSecret }}" on-change="{{ onApiSecret }}" hint-size="100%,78px"></x-import>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ gatewayManaged }}">
+                        <div style="padding:14px 16px; background:var(--surface-input); border-radius:var(--radius-md); border:1px solid var(--border-soft); font-size:13px; color:var(--text-secondary); line-height:1.5;">managed by hyperdynamics — sms billed at ₹0.18 / message on your monthly invoice. nothing to configure.</div>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+                </div>
+              </x-import>
+
+              <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Card" padding="{{ 26 }}" hint-size="100%,240px">
+                <div style="display:flex; flex-direction:column; gap:18px;">
+                  <span style="font-size:15px; font-weight:800;">change password</span>
+                  <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="current password" type="password" placeholder="••••••••" value="{{ pwCur }}" on-change="{{ onPwCur }}" hint-size="100%,78px"></x-import>
+                  <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Input" label="new password" type="password" placeholder="at least 4 characters" value="{{ pwNew }}" on-change="{{ onPwNew }}" hint-size="100%,78px"></x-import>
+                  <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="ghost" size="md" disabled="{{ pwDisabled }}" on-click="{{ changePw }}" hint-size="170px,48px">update password</x-import>
+                </div>
+              </x-import>
+
+              <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="outline" size="md" on-click="{{ doLogout }}" hint-size="120px,48px">log out</x-import>
+            </div>
+          </sc-if>
+
+        </div>
+      </main>
+
+      <!-- BOTTOM TAB BAR (narrow) -->
+      <sc-if value="{{ showTabbar }}">
+        <nav style="position:fixed; bottom:0; left:0; right:0; z-index:40; display:flex; justify-content:space-around; align-items:stretch; padding:8px 6px calc(8px + env(safe-area-inset-bottom)); background:var(--glass-fill); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); border-top:1px solid var(--border-soft);">
+          <button onClick="{{ goDashboard }}" style="{{ tHome }}"><span style="font-size:19px;">⌂</span><span style="font-size:10px; font-weight:700;">home</span></button>
+          <button onClick="{{ goEarn }}" style="{{ tEarn }}"><span style="font-size:19px;">＋</span><span style="font-size:10px; font-weight:700;">earn</span></button>
+          <button onClick="{{ goRedeem }}" style="{{ tRedeem }}"><span style="font-size:19px;">★</span><span style="font-size:10px; font-weight:700;">redeem</span></button>
+          <button onClick="{{ goCorrection }}" style="{{ tHist }}"><span style="font-size:19px;">↺</span><span style="font-size:10px; font-weight:700;">fix</span></button>
+          <button onClick="{{ goSettings }}" style="{{ tSet }}"><span style="font-size:19px;">⚙</span><span style="font-size:10px; font-weight:700;">settings</span></button>
+        </nav>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- ============ SHARED OVERLAYS ============ -->
+  <sc-if value="{{ loading }}">
+    <div style="position:fixed; inset:0; z-index:90; background:rgba(8,9,11,0.6); backdrop-filter:blur(3px); display:flex; align-items:center; justify-content:center; animation:hdlm-fade .2s ease;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:16px;">
+        <div style="width:44px; height:44px; border-radius:999px; border:3px solid var(--border-soft); border-top-color:var(--mint-400); animation:hdlm-spin .8s linear infinite;"></div>
+        <span style="font-size:14px; font-weight:600; color:var(--text-secondary);">{{ loadingMsg }}</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ dialog }}">
+    <div style="position:fixed; inset:0; z-index:100; background:rgba(8,9,11,0.68); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:24px; animation:hdlm-fade .2s ease;">
+      <div style="width:min(420px,92vw); background:var(--surface-elev); border:1px solid var(--border-soft); border-radius:var(--radius-xl); box-shadow:var(--shadow-float); padding:28px; display:flex; flex-direction:column; gap:16px; animation:hdlm-pop .28s cubic-bezier(.25,.46,.45,.94);">
+        <h3 style="margin:0; font-size:21px; font-weight:900; letter-spacing:-0.02em;">{{ dialogTitle }}</h3>
+        <p style="margin:0; font-size:15px; font-weight:500; color:var(--text-secondary); line-height:1.55;">{{ dialogBody }}</p>
+        <div style="display:flex; gap:12px; margin-top:6px;">
+          <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="ghost" size="md" block="{{ true }}" on-click="{{ closeDialog }}" hint-size="100%,48px">cancel</x-import>
+          <x-import component-from-global-scope="SterlingPersonalCFODesignSystem_123495.Button" variant="{{ dialogConfirmVariant }}" size="md" block="{{ true }}" on-click="{{ dialogConfirm }}" hint-size="100%,48px">{{ dialogConfirmLabel }}</x-import>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toast }}">
+    <div style="{{ toastStyle }}">
+      <span style="font-size:15px; font-weight:800;">{{ toastIcon }}</span>
+      <span style="font-size:14px; font-weight:600;">{{ toastMsg }}</span>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:820},&quot;otpAddonEnabled&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;config&quot;,&quot;label&quot;:&quot;OTP add-on enabled&quot;},&quot;pointsRatio&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:10,&quot;min&quot;:1,&quot;max&quot;:100,&quot;unit&quot;:&quot;₹/pt&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;config&quot;},&quot;businessName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;mint max&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;config&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: 'landing',
+    wide: true,
+    loggedIn: false,
+    confirmSuccess: true,
+    // login
+    loginId: '', loginPw: '', showPw: false, loginError: '',
+    // config
+    businessName: this.props.businessName ?? 'mint max',
+    ratio: this.props.pointsRatio ?? 10,
+    otpEnabled: this.props.otpAddonEnabled ?? false,
+    gateway: 'managed', apiKey: '', apiSecret: '',
+    pwCur: '', pwNew: '',
+    // earn
+    earnPhone: '', earnAmount: '', earnEntries: [],
+    // redeem
+    redeemPhone: '', lookup: null, redeemAmount: '',
+    otpSent: false, otpValue: '', otpAttempts: 0, otpFailed: false, otpOverride: false,
+    // correction
+    filter: '', selectedId: null,
+    // shared
+    toast: null, dialog: null, loading: false, loadingMsg: '',
+    // data
+    customers: {
+      '9876543210': { name: 'ravi kumar', balance: 45 },
+      '9911002200': { name: 'meera nair', balance: 120 },
+      '9800011122': { name: 'arjun das', balance: 8 },
+      '9765432190': { name: 'kavya rao', balance: 0 },
+    },
+    txns: [
+      { id: 'TX1041', type: 'earn', phone: '9876543210', amount: 450, points: 45, time: 'today · 2:14 pm', status: 'ok' },
+      { id: 'TX1040', type: 'redeem', phone: '9911002200', amount: null, points: 30, time: 'today · 1:02 pm', status: 'ok' },
+      { id: 'TX1039', type: 'earn', phone: '9911002200', amount: 1500, points: 150, time: 'today · 12:40 pm', status: 'ok' },
+      { id: 'TX1038', type: 'earn', phone: '9800011122', amount: 80, points: 8, time: 'yesterday · 7:30 pm', status: 'ok' },
+      { id: 'TX1037', type: 'redeem', phone: '9911002200', amount: null, points: 20, time: 'yesterday · 6:15 pm', status: 'reversed' },
+      { id: 'TX1036', type: 'earn', phone: '9765432190', amount: 200, points: 20, time: 'mar 12 · 3:00 pm', status: 'reversed' },
+    ],
+    seq: 1042,
+  };
+
+  componentDidMount() {
+    this._resize = () => this.setState({ wide: window.innerWidth >= 860 });
+    this._resize();
+    window.addEventListener('resize', this._resize);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._resize);
+    if (this._toastT) clearTimeout(this._toastT);
+  }
+
+  // ---- helpers ----
+  digits(s) { return String(s ?? '').replace(/\D/g, ''); }
+  mask(p) { const d = this.digits(p); return d.length >= 5 ? d.slice(0, 5) + 'XXXXX' : d; }
+  inr(n) { return '₹' + Number(n).toLocaleString('en-IN'); }
+  pts(amt) { const r = Number(this.state.ratio) || 1; return Math.floor((Number(amt) || 0) / r); }
+
+  go(screen) { this.setState({ screen }); }
+  toast(msg, tone = 'success') {
+    if (this._toastT) clearTimeout(this._toastT);
+    this.setState({ toast: { msg, tone } });
+    this._toastT = setTimeout(() => this.setState({ toast: null }), 3400);
+  }
+  withLoading(msg, fn, delay = 650) {
+    this.setState({ loading: true, loadingMsg: msg });
+    setTimeout(() => { this.setState({ loading: false }); fn(); }, delay);
+  }
+  openDialog(cfg) { this.setState({ dialog: cfg }); }
+  closeDialog = () => this.setState({ dialog: null });
+
+  // ---- login ----
+  doLogin = () => {
+    const { loginId, loginPw } = this.state;
+    if (!loginId.trim() || !loginPw) { this.setState({ loginError: 'enter both your business id and password to continue.' }); return; }
+    if (loginId.trim().toLowerCase() !== 'mintmax' || loginPw !== 'sterling') {
+      this.setState({ loginError: 'invalid business id or password. please check and try again.' });
+      return;
+    }
+    this.setState({ loginError: '', loggedIn: true, screen: 'dashboard' });
+  };
+  forgotPw = (e) => { if (e && e.preventDefault) e.preventDefault(); this.toast('reset link sent to your registered email.', 'info'); };
+  doLogout = () => {
+    this.openDialog({
+      title: 'log out?', body: 'you\'ll need your business id and password to sign back in.',
+      confirmLabel: 'log out', variant: 'danger',
+      onConfirm: () => this.setState({ loggedIn: false, screen: 'login', loginId: '', loginPw: '', loginError: '' }),
+    });
+  };
+
+  // ---- earn ----
+  earnCredit = () => {
+    const phone = this.digits(this.state.earnPhone);
+    const amt = Number(this.state.earnAmount);
+    const p = this.pts(amt);
+    this.withLoading('crediting points…', () => {
+      this.setState((s) => {
+        const customers = { ...s.customers };
+        const cur = customers[phone] || { name: 'new customer', balance: 0 };
+        customers[phone] = { ...cur, balance: cur.balance + p };
+        const id = 'TX' + s.seq;
+        const txn = { id, type: 'earn', phone, amount: amt, points: p, time: 'today · just now', status: 'ok' };
+        const entry = { id, phone, amount: amt, points: p, time: 'just now' };
+        return { customers, txns: [txn, ...s.txns], earnEntries: [entry, ...s.earnEntries].slice(0, 5), seq: s.seq + 1, earnAmount: '' };
+      });
+      this.toast(p + ' points credited to ' + this.mask(phone), 'success');
+    });
+  };
+
+  // ---- redeem ----
+  doLookup = () => {
+    const phone = this.digits(this.state.redeemPhone);
+    this.withLoading('looking up customer…', () => {
+      const found = !!this.state.customers[phone];
+      this.setState({ lookup: found ? phone : 'none', redeemAmount: '', otpSent: false, otpValue: '', otpAttempts: 0, otpFailed: false, otpOverride: false });
+    });
+  };
+  sendOtp = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    this.withLoading('sending otp…', () => {
+      this.setState({ otpSent: true, otpValue: '', otpFailed: false });
+      this.toast('otp sent to ' + this.mask(this.state.lookup), 'info');
+    }, 500);
+  };
+  doRedeem = () => {
+    const phone = this.state.lookup;
+    const bal = this.state.customers[phone].balance;
+    const n = Number(this.state.redeemAmount);
+    const needsOtp = this.state.otpEnabled && !this.state.otpOverride;
+    if (needsOtp) {
+      if (this.state.otpValue !== '1234') {
+        this.setState((s) => ({ otpAttempts: s.otpAttempts + 1, otpFailed: true }));
+        this.toast('otp did not match. try again or override.', 'error');
+        return;
+      }
+    }
+    this.withLoading('processing redemption…', () => {
+      this.setState((s) => {
+        const customers = { ...s.customers };
+        customers[phone] = { ...customers[phone], balance: customers[phone].balance - n };
+        const id = 'TX' + s.seq;
+        const note = s.otpOverride ? ' · override' : '';
+        const txn = { id, type: 'redeem', phone, amount: null, points: n, time: 'today · just now' + note, status: 'ok' };
+        return { customers, txns: [txn, ...s.txns], seq: s.seq + 1, redeemAmount: '', otpSent: false, otpValue: '', otpFailed: false, otpAttempts: 0, otpOverride: false };
+      });
+      this.toast(n + ' points redeemed. new balance: ' + (bal - n), 'success');
+    });
+  };
+  forceApprove = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    this.setState({ otpOverride: true, otpFailed: false }, () => this.doRedeem());
+  };
+
+  // ---- correction ----
+  askReverse = () => {
+    const t = this.state.txns.find((x) => x.id === this.state.selectedId);
+    if (!t) return;
+    const cust = this.state.customers[t.phone];
+    const effect = t.type === 'earn' ? '−' + t.points + ' pts' : '+' + t.points + ' pts';
+    this.openDialog({
+      title: 'reverse ' + t.type + '?',
+      body: 'this will change ' + (cust ? cust.name : 'the customer') + '\'s balance by ' + effect + ' and cannot be undone.',
+      confirmLabel: 'reverse it', variant: 'danger',
+      onConfirm: () => this.doReverse(t.id),
+    });
+  };
+  doReverse = (id) => {
+    this.withLoading('reversing transaction…', () => {
+      this.setState((s) => {
+        const txns = s.txns.map((x) => x.id === id ? { ...x, status: 'reversed' } : x);
+        const t = s.txns.find((x) => x.id === id);
+        const customers = { ...s.customers };
+        if (t && customers[t.phone]) {
+          const delta = t.type === 'earn' ? -t.points : t.points;
+          customers[t.phone] = { ...customers[t.phone], balance: Math.max(0, customers[t.phone].balance + delta) };
+        }
+        return { txns, customers };
+      });
+      this.toast('transaction reversed. balance updated.', 'success');
+    });
+  };
+
+  // ---- settings ----
+  toggleOtp = (next) => { this.setState({ otpEnabled: next }); this.toast(next ? 'otp verification enabled.' : 'otp verification disabled.', 'info'); };
+  onGateway = (v) => this.setState({ gateway: v });
+  saveSettings = () => this.toast('business profile saved.', 'success');
+  changePw = () => { this.setState({ pwCur: '', pwNew: '' }); this.toast('password updated.', 'success'); };
+  noop = (e) => { if (e && e.preventDefault) e.preventDefault(); this.toast('logo upload is stubbed in this prototype.', 'info'); };
+
+  navStyle(screen, tab) {
+    const active = this.state.screen === screen;
+    if (tab) {
+      return { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flex: 1, padding: '4px 2px', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', color: active ? 'var(--mint-400)' : 'var(--text-tertiary)' };
+    }
+    return {
+      display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px',
+      borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)',
+      fontWeight: 700, fontSize: '15px', textAlign: 'left',
+      background: active ? 'var(--surface-hover)' : 'transparent',
+      color: active ? 'var(--mint-400)' : 'var(--text-secondary)',
+      transition: 'background var(--dur-quick) var(--ease-out), color var(--dur-quick) var(--ease-out)',
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const S = s.screen;
+    const preAuth = !s.loggedIn;
+    const app = s.loggedIn;
+    const wide = s.wide;
+
+    // recent activity for dashboard
+    const txnView = (t) => {
+      const isEarn = t.type === 'earn';
+      const reversed = t.status === 'reversed';
+      return {
+        id: t.id, masked: this.mask(t.phone), typeLabel: isEarn ? 'earn' : 'redeem',
+        sub: (isEarn ? 'earn · ' + this.inr(t.amount) : 'redeem') + ' · ' + t.time,
+        amountLabel: (isEarn ? '+' : '−') + t.points + ' pts',
+        tone: reversed ? 'default' : (isEarn ? 'gain' : 'loss'),
+        meta: reversed ? 'reversed' : '',
+        avatar: isEarn ? 'E' : 'R', avatarTone: isEarn ? 'mint' : 'ink',
+        time: t.time,
+      };
+    };
+    const dashRecent = s.txns.slice(0, 6).map(txnView);
+
+    // stats
+    const todayEarns = s.txns.filter((t) => t.type === 'earn' && t.time.startsWith('today') && t.status === 'ok').length;
+    const todayRedeems = s.txns.filter((t) => t.type === 'redeem' && t.time.startsWith('today') && t.status === 'ok').length;
+    const outstanding = Object.values(s.customers).reduce((a, c) => a + c.balance, 0);
+
+    // earn
+    const ep = this.digits(s.earnPhone);
+    const earnPhoneError = (ep.length > 0 && ep.length < 10) ? 'enter a 10-digit number' : null;
+    const amtNum = Number(s.earnAmount) || 0;
+    const earnPreview = amtNum > 0 ? this.inr(amtNum) + ' → ' + this.pts(amtNum) + ' pts' : 'enter a bill amount';
+    const earnValid = ep.length === 10 && amtNum > 0;
+    const earnEntriesView = s.earnEntries.map((e) => ({
+      masked: this.mask(e.phone), sub: this.inr(e.amount) + ' · ' + e.time,
+      amountLabel: '+' + e.points + ' pts', meta: '', avatar: 'E',
+      onFix: () => this.setState({ screen: 'correction', filter: e.phone }),
+    }));
+
+    // redeem
+    const lookupFound = app && s.lookup && s.lookup !== 'none';
+    const cust = lookupFound ? s.customers[s.lookup] : null;
+    const custHistory = lookupFound ? s.txns.filter((t) => t.phone === s.lookup).slice(0, 6) : [];
+    const custHistoryView = custHistory.map((t) => {
+      const v = txnView(t);
+      return { typeLabel: v.typeLabel, sub: (t.type === 'earn' ? this.inr(t.amount) : 'redeem') + ' · ' + t.time, amountLabel: v.amountLabel, tone: v.tone, meta: v.meta, avatar: v.avatar, avatarTone: v.avatarTone };
+    });
+    const rn = Number(s.redeemAmount) || 0;
+    let redeemError = null;
+    if (lookupFound && s.redeemAmount !== '') {
+      if (rn <= 0) redeemError = 'enter a number greater than 0';
+      else if (rn > cust.balance) redeemError = 'exceeds available balance of ' + cust.balance + ' pts';
+    }
+    const redeemAmtValid = lookupFound && rn > 0 && rn <= (cust ? cust.balance : 0);
+    const otpActive = s.otpEnabled && !s.otpOverride;
+    const otpReady = !otpActive || (s.otpSent && s.otpValue.length === 4);
+    const redeemDisabled = !(redeemAmtValid && otpReady);
+    const redeemBtnLabel = otpActive ? 'verify & redeem' : 'redeem';
+
+    // correction
+    const fd = this.digits(s.filter);
+    const correctionView = s.txns
+      .filter((t) => fd === '' || t.phone.includes(fd))
+      .map((t) => {
+        const isEarn = t.type === 'earn';
+        const reversed = t.status === 'reversed';
+        const sel = t.id === s.selectedId;
+        return {
+          id: t.id, masked: this.mask(t.phone), typeLabel: t.type, time: t.time,
+          icon: isEarn ? '＋' : '★', iconBg: isEarn ? 'var(--gain-dim)' : 'var(--ink-400)', iconColor: isEarn ? 'var(--mint-400)' : 'var(--gold-400)',
+          amountLabel: (isEarn ? '+' : '−') + t.points + ' pts',
+          amountColor: reversed ? 'var(--text-disabled)' : (isEarn ? 'var(--gain)' : 'var(--loss)'),
+          statusLabel: reversed ? 'reversed' : 'posted',
+          statusColor: reversed ? 'var(--loss)' : 'var(--text-tertiary)',
+          rowStyle: {
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%',
+            padding: '12px 14px', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontFamily: 'var(--font-sans)',
+            border: sel ? '1.5px solid var(--mint-400)' : '1px solid var(--border-subtle)',
+            background: sel ? 'var(--surface-hover)' : 'var(--surface-input)',
+            opacity: reversed ? 0.72 : 1,
+            transition: 'border-color var(--dur-quick) var(--ease-out), background var(--dur-quick) var(--ease-out)',
+          },
+          onSelect: () => this.setState({ selectedId: t.id }),
+        };
+      });
+    const sel = s.txns.find((t) => t.id === s.selectedId) || null;
+    let selVals = {};
+    if (sel) {
+      const isEarn = sel.type === 'earn';
+      const reversed = sel.status === 'reversed';
+      const selCust = s.customers[sel.phone];
+      selVals = {
+        selType: isEarn ? 'earn (points credited)' : 'redeem (points spent)',
+        selMasked: this.mask(sel.phone),
+        selAmountRowLabel: isEarn ? 'bill amount' : 'redeemed',
+        selAmountValue: isEarn ? this.inr(sel.amount) : sel.points + ' pts',
+        selPointsValue: (isEarn ? '+' : '−') + sel.points,
+        selPointsColor: isEarn ? 'var(--gain)' : 'var(--loss)',
+        selTime: sel.time, selId: sel.id,
+        selStatusLabel: reversed ? 'reversed' : 'posted',
+        selStatusColor: reversed ? 'var(--loss)' : 'var(--mint-400)',
+        selReversible: !reversed, selAlreadyReversed: reversed,
+        selReverseEffect: isEarn ? '−' + sel.points + ' pts' : '+' + sel.points + ' pts',
+        custName2: selCust ? selCust.name : 'the customer',
+      };
+    }
+
+    // toast
+    const toastTone = s.toast ? s.toast.tone : 'info';
+    const toastColors = {
+      success: { border: 'var(--mint-500)', glow: 'var(--glow-mint)', icon: '✓', iconColor: 'var(--mint-400)' },
+      error: { border: 'var(--loss)', glow: 'var(--glow-loss)', icon: '✕', iconColor: 'var(--loss)' },
+      info: { border: 'var(--border-strong)', glow: 'var(--shadow-lg)', icon: 'ℹ', iconColor: 'var(--info)' },
+    };
+    const tc = toastColors[toastTone] || toastColors.info;
+
+    return {
+      // routing
+      isLanding: !app && S === 'landing',
+      isConfirm: !app && S === 'confirm',
+      isLogin: !app && S === 'login',
+      isApp: app,
+      isDashboard: app && S === 'dashboard',
+      isEarn: app && S === 'earn',
+      isRedeem: app && S === 'redeem',
+      isCorrection: app && S === 'correction',
+      isSettings: app && S === 'settings',
+
+      landingCols: wide ? '1.15fr 0.85fr' : '1fr',
+
+      // confirm
+      confirmSuccess: s.confirmSuccess, confirmFailure: !s.confirmSuccess,
+      setConfirmSuccess: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ confirmSuccess: true }); },
+      setConfirmFail: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ confirmSuccess: false }); },
+      confirmTabSuccess: s.confirmSuccess ? 'var(--mint-400)' : 'var(--text-disabled)',
+      confirmTabFail: !s.confirmSuccess ? 'var(--warn)' : 'var(--text-disabled)',
+
+      // nav / shell
+      goLanding: () => this.go('landing'),
+      goLoginPage: () => this.setState({ screen: 'login', loginError: '' }),
+      startPayment: () => this.withLoading('redirecting to razorpay…', () => this.setState({ screen: 'confirm', confirmSuccess: true }), 850),
+      goDashboard: () => this.go('dashboard'),
+      goEarn: () => this.go('earn'),
+      goRedeem: () => this.go('redeem'),
+      goCorrection: () => this.go('correction'),
+      goSettings: () => this.go('settings'),
+      doLogout: this.doLogout,
+      appShellStyle: { display: 'flex', minHeight: '100vh', alignItems: 'stretch' },
+      mainStyle: { flex: 1, minWidth: 0, minHeight: '100vh', overflowX: 'hidden', padding: wide ? '36px 40px 60px' : '24px 18px 110px' },
+      showSidebar: app && wide,
+      showTabbar: app && !wide,
+      navHome: this.navStyle('dashboard', false), navEarn: this.navStyle('earn', false),
+      navRedeem: this.navStyle('redeem', false), navHist: this.navStyle('correction', false),
+      navSet: this.navStyle('settings', false),
+      tHome: this.navStyle('dashboard', true), tEarn: this.navStyle('earn', true),
+      tRedeem: this.navStyle('redeem', true), tHist: this.navStyle('correction', true),
+      tSet: this.navStyle('settings', true),
+
+      // login
+      loginId: s.loginId, loginPw: s.loginPw, loginError: s.loginError,
+      onLoginId: (e) => this.setState({ loginId: e.target.value }),
+      onLoginPw: (e) => this.setState({ loginPw: e.target.value }),
+      showPwLabel: s.showPw ? 'hide' : 'show',
+      pwType: s.showPw ? 'text' : 'password',
+      toggleShowPw: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState((p) => ({ showPw: !p.showPw })); },
+      doLogin: this.doLogin, forgotPw: this.forgotPw,
+
+      // header
+      businessName: s.businessName,
+      todayLabel: 'today · 27 jul',
+
+      // dashboard
+      statEarnCount: String(todayEarns),
+      statRedeemCount: String(todayRedeems),
+      statOutstanding: outstanding.toLocaleString('en-IN'),
+      dashActionCols: wide ? 'repeat(3,1fr)' : '1fr',
+      dashRecent,
+
+      // earn
+      earnPhone: s.earnPhone, earnAmount: s.earnAmount,
+      onEarnPhone: (e) => this.setState({ earnPhone: this.digits(e.target.value).slice(0, 10) }),
+      onEarnAmount: (e) => this.setState({ earnAmount: this.digits(e.target.value).slice(0, 7) }),
+      earnPhoneError, earnPreview, earnDisabled: !earnValid, earnCredit: this.earnCredit,
+      earnCols: wide ? '1fr 1fr' : '1fr',
+      ratio: s.ratio,
+      earnEntriesView, earnEmpty: s.earnEntries.length === 0, earnHasEntries: s.earnEntries.length > 0,
+
+      // redeem
+      redeemPhone: s.redeemPhone,
+      onRedeemPhone: (e) => this.setState({ redeemPhone: this.digits(e.target.value).slice(0, 10), lookup: null }),
+      doLookup: this.doLookup,
+      lookupDisabled: this.digits(s.redeemPhone).length !== 10,
+      lookupNone: app && s.lookup === 'none',
+      lookupFound,
+      redeemMaskedTyped: this.mask(s.redeemPhone),
+      custName: cust ? cust.name : '', custMasked: cust ? this.mask(s.lookup) : '',
+      custBalanceLabel: cust ? cust.balance + ' pts' : '',
+      custHistoryView, custHistoryEmpty: custHistory.length === 0,
+      redeemAmount: s.redeemAmount,
+      onRedeemAmount: (e) => this.setState({ redeemAmount: this.digits(e.target.value).slice(0, 6) }),
+      redeemError,
+      redeemCols: wide ? '1.2fr 0.8fr' : '1fr',
+      showOtpRow: s.otpEnabled && !s.otpOverride,
+      otpNotSent: !s.otpSent, otpSent: s.otpSent, otpValue: s.otpValue,
+      onOtp: (e) => this.setState({ otpValue: this.digits(e.target.value).slice(0, 4), otpFailed: false }),
+      sendOtp: this.sendOtp, sendOtpDisabled: !redeemAmtValid,
+      otpFailed: s.otpFailed, forceApprove: this.forceApprove,
+      redeemDisabled, redeemBtnLabel, doRedeem: this.doRedeem,
+
+      // correction
+      filter: s.filter,
+      onFilter: (e) => this.setState({ filter: this.digits(e.target.value).slice(0, 10) }),
+      correctionView, correctionEmpty: correctionView.length === 0,
+      noSelection: !sel, hasSelection: !!sel,
+      askReverse: this.askReverse,
+      ...selVals,
+
+      // settings
+      businessNameVal: s.businessName,
+      onBizName: (e) => this.setState({ businessName: e.target.value }),
+      ratioVal: String(s.ratio),
+      onRatio: (e) => this.setState({ ratio: Math.max(1, Number(this.digits(e.target.value)) || 1) }),
+      ratioHint: '₹' + s.ratio + ' spent earns the customer 1 point',
+      otpEnabled: s.otpEnabled, toggleOtp: this.toggleOtp,
+      otpAddonNote: s.otpEnabled ? 'add-on active — billed monthly.' : 'requires the paid otp add-on.',
+      gatewayOptions: [{ value: 'byo', label: 'bring your own' }, { value: 'managed', label: 'managed by us' }],
+      gateway: s.gateway, onGateway: this.onGateway,
+      gatewayByo: s.gateway === 'byo', gatewayManaged: s.gateway === 'managed',
+      apiKey: s.apiKey, apiSecret: s.apiSecret,
+      onApiKey: (e) => this.setState({ apiKey: e.target.value }),
+      onApiSecret: (e) => this.setState({ apiSecret: e.target.value }),
+      pwCur: s.pwCur, pwNew: s.pwNew,
+      onPwCur: (e) => this.setState({ pwCur: e.target.value }),
+      onPwNew: (e) => this.setState({ pwNew: e.target.value }),
+      pwDisabled: !(s.pwCur.length > 0 && s.pwNew.length >= 4),
+      changePw: this.changePw, saveSettings: this.saveSettings, noop: this.noop,
+
+      // overlays
+      loading: s.loading, loadingMsg: s.loadingMsg,
+      dialog: s.dialog,
+      dialogTitle: s.dialog ? s.dialog.title : '',
+      dialogBody: s.dialog ? s.dialog.body : '',
+      dialogConfirmLabel: s.dialog ? s.dialog.confirmLabel : '',
+      dialogConfirmVariant: s.dialog ? (s.dialog.variant || 'primary') : 'primary',
+      dialogConfirm: () => { const d = s.dialog; this.closeDialog(); if (d && d.onConfirm) d.onConfirm(); },
+      closeDialog: this.closeDialog,
+      toast: s.toast, toastMsg: s.toast ? s.toast.msg : '', toastIcon: tc.icon,
+      toastStyle: {
+        position: 'fixed', left: '50%', bottom: s.wide ? '28px' : '96px', transform: 'translateX(-50%)', zIndex: 95,
+        display: 'flex', alignItems: 'center', gap: 12, maxWidth: '90vw',
+        padding: '14px 22px', borderRadius: 'var(--radius-pill)',
+        background: 'var(--surface-elev)', border: '1px solid ' + tc.border, boxShadow: tc.glow,
+        color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', animation: 'hdlm-toast .32s cubic-bezier(.25,.46,.45,.94)',
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

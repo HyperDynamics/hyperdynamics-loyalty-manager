@@ -1,0 +1,38 @@
+/* ============================================================
+   STERLING · BASE RESET
+   Minimal reset + brand defaults. Applies the dark canvas
+   and Gilroy globally. Imported last from styles.css.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  font-weight: var(--w-regular);
+  line-height: var(--lh-relaxed);
+  color: var(--text-primary);
+  background-color: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6, p, figure { margin: 0; }
+
+a { color: var(--text-link); text-decoration: none; }
+
+img, svg { display: block; max-width: 100%; }
+
+button, input, textarea, select { font: inherit; color: inherit; }
+
+::selection { background: var(--mint-500); color: var(--ink-900); }
+
+/* thin dark scrollbars to match the canvas */
+* { scrollbar-width: thin; scrollbar-color: var(--ink-300) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--ink-300); border-radius: 999px; }
+*::-webkit-scrollbar-track { background: transparent; }

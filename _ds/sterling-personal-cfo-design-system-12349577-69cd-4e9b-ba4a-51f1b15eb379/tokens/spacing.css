@@ -1,0 +1,49 @@
+/* ============================================================
+   STERLING · SPACING, RADII, LAYOUT
+   4px base grid. Generous on marketing, tight on product UI.
+   ============================================================ */
+
+:root {
+  /* ---- SPACE SCALE (4px base) --------------------------- */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* ---- RADII -------------------------------------------- */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;    /* default control / small card      */
+  --radius-lg: 20px;    /* card                              */
+  --radius-xl: 28px;    /* sheet / feature card              */
+  --radius-2xl: 36px;   /* hero panels                       */
+  --radius-pill: 999px; /* buttons, chips (CRED signature)   */
+  --radius-card-face: 18px; /* the metallic credit card       */
+
+  /* ---- BORDER WIDTHS ------------------------------------ */
+  --bw-hair: 1px;      /* @kind other */
+  --bw-thick: 1.5px;   /* @kind other */
+
+  /* ---- LAYOUT ------------------------------------------- */
+  --container-max: 1200px;
+  --container-wide: 1440px;
+  --gutter: 24px;
+  --app-width: 390px;       /* mobile app canvas (iPhone)    */
+  --app-radius: 44px;       /* app screen corner radius      */
+  --section-pad-y: 120px;   /* marketing section vertical pad */
+  --z-base: 1;        /* @kind other */
+  --z-sticky: 100;    /* @kind other */
+  --z-overlay: 500;   /* @kind other */
+  --z-modal: 1000;    /* @kind other */
+  --z-toast: 1500;    /* @kind other */
+}

@@ -1,0 +1,59 @@
+/* ============================================================
+   STERLING · EFFECTS — shadows, glows, glass, 3D, gradients
+   The "eye-catching 3D" layer. Depth comes from layered
+   inner+outer shadows, colored glows, and metallic gradients.
+   ============================================================ */
+
+:root {
+  /* ---- ELEVATION (ambient dark shadows) ----------------- */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.45);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-lg: 0 18px 48px rgba(0,0,0,0.55);
+  --shadow-xl: 0 32px 80px rgba(0,0,0,0.6);
+  --shadow-float: 0 40px 90px -20px rgba(0,0,0,0.7);
+
+  /* inset "pressed metal" — lifted from CRED --mobile-box-shadow */
+  --shadow-inset: rgba(176,176,178,0.16) 0px -5px 6px 0px inset,
+                  rgba(0,0,0,0.24) 4px 6px 11px 1px inset;
+
+  /* ---- GLOWS (colored, for the 3D pop) ------------------ */
+  --glow-mint: 0 0 40px -4px var(--mint-glow);
+  --glow-mint-strong: 0 0 60px -2px rgba(34,230,164,0.6), 0 0 24px rgba(34,230,164,0.35);
+  --glow-gold: 0 0 46px -6px var(--gold-glow);
+  --glow-loss: 0 0 40px -6px rgba(238,47,76,0.45);
+  --glow-blue: 0 0 40px -6px rgba(26,97,233,0.45);
+
+  /* ---- HAIRLINE + LIFT (default card treatment) --------- */
+  /* soft top-edge highlight + drop shadow = the Sterling card */
+  --lift-card: inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 32px rgba(0,0,0,0.5); /* @kind shadow */
+  --lift-raised: inset 0 1px 0 rgba(255,255,255,0.08), 0 24px 60px rgba(0,0,0,0.6); /* @kind shadow */
+
+  /* ---- GLASS -------------------------------------------- */
+  --glass-fill: rgba(28, 32, 40, 0.55);
+  --glass-fill-light: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-blur: 22px;         /* @kind other */
+  --glass-blur-strong: 40px;  /* @kind other */
+
+  /* ---- GRADIENTS ---------------------------------------- */
+  /* signature mint→emerald wash for primary CTAs & glows */
+  --grad-mint: linear-gradient(135deg, #2af0b0 0%, #00d492 48%, #04b57c 100%); /* @kind color */
+  --grad-mint-soft: linear-gradient(160deg, rgba(34,230,164,0.22), rgba(2,119,87,0.05)); /* @kind color */
+
+  /* metallic surfaces for the 3D cards */
+  --grad-obsidian: linear-gradient(150deg, #26292f 0%, #14161a 55%, #0c0d10 100%); /* @kind color */
+  --grad-gold-metal: linear-gradient(135deg, #fff0c4 0%, #e8c87e 34%, #a9843a 68%, #e8c87e 100%); /* @kind color */
+  --grad-emerald-card: linear-gradient(140deg, #0e7c5c 0%, #05543d 46%, #022b20 100%); /* @kind color */
+  --grad-violet-card: linear-gradient(140deg, #6a3cf0 0%, #4318b8 52%, #250a68 100%); /* @kind color */
+
+  /* ambient page glow — a mint aura behind hero content */
+  --grad-aura-mint: radial-gradient(60% 60% at 50% 0%, rgba(34,230,164,0.16) 0%, rgba(34,230,164,0) 70%); /* @kind color */
+  --grad-aura-gold: radial-gradient(50% 50% at 80% 10%, rgba(232,200,126,0.14) 0%, rgba(0,0,0,0) 70%); /* @kind color */
+
+  /* sheen line swept across metallic cards */
+  --grad-sheen: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.22) 46%, rgba(255,255,255,0.05) 52%, transparent 66%); /* @kind color */
+
+  /* grain / noise overlay opacity for premium texture */
+  --texture-grain: 0.05;  /* @kind other */
+}

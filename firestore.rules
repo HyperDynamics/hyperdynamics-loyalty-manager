@@ -1,0 +1,66 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsBusiness(businessId) {
+      return signedIn() && request.auth.token.businessId == businessId;
+    }
+
+    // Public: the pre-login payment confirmation page polls this by
+    // reference id (no auth) to reflect true webhook-confirmed status.
+    // Only Cloud Functions (Admin SDK, bypasses rules) ever write it.
+    match /paymentOrders/{orderId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /businesses/{businessId} {
+      allow read: if ownsBusiness(businessId);
+
+      // Business profile is simple enough for a direct client write, but
+      // locked to an explicit field allow-list — everything else
+      // (points balances, transactions, OTPs) is Cloud-Functions-only.
+      allow update: if ownsBusiness(businessId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['displayName', 'logoUrl', 'pointsRatio', 'otpEnabled', 'gateway']);
+
+      allow create, delete: if false;
+
+      match /private/{document=**} {
+        allow read, write: if false;
+      }
+
+      match /customers/{phone} {
+        allow read: if ownsBusiness(businessId);
+        allow write: if false;
+      }
+
+      match /transactions/{txnId} {
+        allow read: if ownsBusiness(businessId);
+        allow write: if false;
+      }
+
+      match /otps/{otpId} {
+        allow read, write: if false;
+      }
+
+      match /stats/{document=**} {
+        allow read: if ownsBusiness(businessId);
+        allow write: if false;
+      }
+    }
+
+    // Functions-only bookkeeping collections.
+    match /loginRateLimits/{document=**} {
+      allow read, write: if false;
+    }
+    match /mail/{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

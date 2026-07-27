@@ -1,0 +1,86 @@
+/* ============================================================
+   STERLING · COLOR SYSTEM
+   Dark-first, premium fintech. Deep ink canvas, luminous mint
+   as the money/growth signal, warm gold for premium surfaces.
+   Base ramps first, then semantic aliases.
+   ============================================================ */
+
+:root {
+  /* ---- INK / CANVAS (deepest → elevated) ---------------- */
+  --ink-900: #08090b;   /* app void / behind everything      */
+  --ink-800: #0b0c0f;   /* primary page background           */
+  --ink-700: #101216;   /* raised background band            */
+  --ink-600: #16181e;   /* card / surface base               */
+  --ink-500: #1d2027;   /* elevated card, sheet              */
+  --ink-400: #262a33;   /* hover surface, input fill         */
+  --ink-300: #333844;   /* border-strong / divider on dark   */
+  --ink-200: #454b59;   /* muted control track               */
+
+  /* ---- NEUTRAL TEXT RAMP (on dark) ---------------------- */
+  --white:      #ffffff;
+  --paper:      #f8f8f8;  /* primary text (from CRED source)  */
+  --paper-dim:  #c6c9d1;  /* secondary text                   */
+  --paper-mute: #8a8f9c;  /* tertiary / captions              */
+  --paper-faint:#5b606d;  /* disabled, placeholder            */
+
+  /* ---- BRAND: MINT (money / growth / primary) ----------- */
+  --mint-50:  #e6fff6;
+  --mint-300: #5ff3c0;
+  --mint-400: #22e6a4;   /* primary accent — the glow        */
+  --mint-500: #00d492;   /* primary button base              */
+  --mint-600: #04b57c;
+  --mint-700: #027757;   /* deep emerald (CRED source green)  */
+  --mint-glow: rgba(34, 230, 164, 0.45);
+
+  /* ---- PREMIUM: GOLD (metal cards, tier accents) -------- */
+  --gold-200: #f7e6b8;
+  --gold-400: #e8c87e;   /* metallic card face               */
+  --gold-500: #d4af58;
+  --gold-600: #a9843a;
+  --gold-glow: rgba(232, 200, 126, 0.4);
+
+  /* ---- SUPPORTING ACCENTS (from CRED palette) ----------- */
+  --blue-400:   #4d86f0;
+  --blue-500:   #1a61e9;   /* --bg-blue                      */
+  --link-blue:  #7ea2ec;   /* inline links (CRED source)     */
+  --purple-500: #5a1ecb;   /* --bg-purple                    */
+  --violet-400: #8b6bf2;
+
+  /* ---- SEMANTIC / FINANCE STATUS ------------------------ */
+  --gain:    #22e6a4;   /* income, positive delta, up        */
+  --gain-dim:#0f5f45;
+  --loss:    #ee2f4c;   /* spend, negative delta, down (CRED)*/
+  --loss-dim:#5e1622;
+  --warn:    #f5a524;   /* pending, attention                */
+  --warn-dim:#5a3d0c;
+  --info:    #4d86f0;   /* neutral informational             */
+
+  /* ---- SIGNAL ALIASES (use these in UI) ----------------- */
+  --bg-app:        var(--ink-800);
+  --bg-raised:     var(--ink-700);
+  --surface-card:  var(--ink-600);
+  --surface-elev:  var(--ink-500);
+  --surface-hover: var(--ink-400);
+  --surface-input: var(--ink-400);
+
+  --text-primary:   var(--paper);
+  --text-secondary: var(--paper-dim);
+  --text-tertiary:  var(--paper-mute);
+  --text-disabled:  var(--paper-faint);
+  --text-inverse:   var(--ink-900);
+  --text-link:      var(--link-blue);
+
+  --accent:        var(--mint-400);
+  --accent-strong: var(--mint-500);
+  --accent-deep:   var(--mint-700);
+  --on-accent:     var(--ink-900);   /* text on mint fill    */
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-soft:   rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-accent: var(--mint-500);
+
+  /* hairline used on glass / metallic edges */
+  --edge-hi: rgba(255, 255, 255, 0.55);
+  --edge-lo: rgba(0, 0, 0, 0.55);
+}

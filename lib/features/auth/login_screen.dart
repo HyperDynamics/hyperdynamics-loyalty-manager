@@ -1,0 +1,165 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/auth_repository.dart';
+import '../../providers/feedback_providers.dart';
+import '../../providers/repository_providers.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_card.dart';
+import '../../widgets/app_input.dart';
+import '../../widgets/coin.dart';
+
+/// C. Admin Login Screen.
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  String _businessId = '';
+  String _password = '';
+  String? _error;
+  bool _submitting = false;
+
+  Future<void> _submit() async {
+    setState(() => _error = null);
+    final repo = ref.read(authRepositoryProvider);
+    setState(() => _submitting = true);
+    try {
+      await repo.login(businessId: _businessId, password: _password);
+      // On success, authSessionProvider updates and the router redirect
+      // to /app/dashboard fires automatically.
+    } on AuthFailure catch (e) {
+      setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final controller = TextEditingController();
+    final businessId = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceElev,
+        title: Text('reset password', style: AppTypography.h3),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("enter your business id and we'll email you a reset link.", style: AppTypography.sm),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              style: AppTypography.body,
+              decoration: const InputDecoration(hintText: 'your business id'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(controller.text), child: const Text('send link')),
+        ],
+      ),
+    );
+    if (businessId == null || businessId.trim().isEmpty) return;
+    try {
+      await ref.read(authRepositoryProvider).sendPasswordReset(businessId);
+      if (mounted) {
+        ref.read(toastProvider.notifier).show('reset link sent to your registered email.', ToastTone.info);
+      }
+    } catch (_) {
+      if (mounted) {
+        // Same generic messaging as login — don't reveal whether the id exists.
+        ref.read(toastProvider.notifier).show('reset link sent to your registered email.', ToastTone.info);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bgApp,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: AppCard(
+              variant: AppCardVariant.elevated,
+              padding: 38,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Coin(symbol: 'H', size: 52),
+                  const SizedBox(height: 18),
+                  Text('admin login', style: AppTypography.h1),
+                  const SizedBox(height: 4),
+                  Text('log in with your business id and password.', style: AppTypography.sm),
+                  const SizedBox(height: 24),
+                  if (_error != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.lossDim,
+                        border: Border.all(color: AppColors.loss),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: Text(_error!, style: AppTypography.sm.copyWith(color: const Color(0xFFFFB9C4), fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(height: 18),
+                  ],
+                  AppInput(
+                    label: 'business id',
+                    placeholder: 'your business id',
+                    value: _businessId,
+                    onChanged: (v) => setState(() {
+                      _businessId = v;
+                      _error = null;
+                    }),
+                    onSubmitted: _submit,
+                  ),
+                  const SizedBox(height: 14),
+                  AppInput(
+                    label: 'password',
+                    placeholder: '••••••••',
+                    obscureText: true,
+                    value: _password,
+                    onChanged: (v) => setState(() {
+                      _password = v;
+                      _error = null;
+                    }),
+                    onSubmitted: _submit,
+                  ),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: _forgotPassword,
+                      child: Text('forgot password?', style: AppTypography.xs.copyWith(color: AppColors.textLink)),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  AppButton(
+                    label: 'log in',
+                    block: true,
+                    size: AppButtonSize.lg,
+                    loading: _submitting,
+                    onPressed: _submit,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

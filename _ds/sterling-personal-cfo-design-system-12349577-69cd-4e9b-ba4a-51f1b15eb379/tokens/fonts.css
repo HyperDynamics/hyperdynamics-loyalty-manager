@@ -1,0 +1,59 @@
+/* Gilroy — the Sterling brand typeface (imported from the CRED-clone source repo).
+   One family, weights 200–900. Used for everything: display, UI, and tabular figures. */
+
+@font-face {
+  font-family: 'Gilroy';
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+  src: url('../assets/fonts/Gilroy-Light.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Gilroy';
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+  src: url('../assets/fonts/Gilroy-Light.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Gilroy';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('../assets/fonts/Gilroy-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Gilroy';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('../assets/fonts/Gilroy-Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Gilroy';
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url('../assets/fonts/Gilroy-SemiBold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Gilroy';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('../assets/fonts/Gilroy-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Gilroy';
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url('../assets/fonts/Gilroy-ExtraBold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Gilroy';
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+  src: url('../assets/fonts/Gilroy-Black.ttf') format('truetype');
+}

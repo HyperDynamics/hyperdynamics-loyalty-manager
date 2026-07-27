@@ -1,0 +1,100 @@
+/* ============================================================
+   STERLING · TYPOGRAPHY
+   One typeface: Gilroy. Copy voice is lowercase & confident.
+   Display is heavy (800–900) and tight; body is 400–600.
+   Financial figures use tabular-nums via the --num helper.
+   ============================================================ */
+
+:root {
+  --font-sans: 'Gilroy', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Gilroy', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
+
+  /* ---- WEIGHTS ------------------------------------------ */
+  --w-light: 300;      /* @kind font */
+  --w-regular: 400;    /* @kind font */
+  --w-medium: 500;     /* @kind font */
+  --w-semibold: 600;   /* @kind font */
+  --w-bold: 700;       /* @kind font */
+  --w-extrabold: 800;  /* @kind font */
+  --w-black: 900;      /* @kind font */
+
+  /* ---- DISPLAY SCALE (marketing / hero) ---------------- */
+  --fs-hero:    106px;  /* CRED hero size                    */
+  --fs-display: 72px;
+  --fs-title-1: 52px;
+  --fs-title-2: 40px;
+  --fs-title-3: 32px;
+
+  /* ---- UI / PRODUCT SCALE ------------------------------ */
+  --fs-h1: 28px;
+  --fs-h2: 24px;
+  --fs-h3: 20px;
+  --fs-lg: 18px;
+  --fs-body: 16px;
+  --fs-sm: 14px;
+  --fs-xs: 13px;
+  --fs-2xs: 11px;
+
+  /* ---- FIGURE / NUMBER SCALE (balances, amounts) ------- */
+  --fs-figure-xl: 56px;
+  --fs-figure-lg: 40px;
+  --fs-figure-md: 28px;
+
+  /* ---- LINE HEIGHTS ------------------------------------ */
+  --lh-tight: 0.96;    /* @kind font */
+  --lh-snug: 1.1;      /* @kind font */
+  --lh-normal: 1.35;   /* @kind font */
+  --lh-relaxed: 1.55;  /* @kind font */
+
+  /* ---- LETTER SPACING ---------------------------------- */
+  --ls-tight: -0.03em; /* @kind font */
+  --ls-snug: -0.015em; /* @kind font */
+  --ls-normal: 0;      /* @kind font */
+  --ls-wide: 0.04em;   /* @kind font */
+  --ls-caps: 0.14em;   /* @kind font */
+}
+
+/* ---- OPTIONAL UTILITY CLASSES ------------------------- */
+.t-hero {
+  font-family: var(--font-display);
+  font-weight: var(--w-bold);
+  font-size: var(--fs-hero);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+}
+.t-display {
+  font-family: var(--font-display);
+  font-weight: var(--w-extrabold);
+  font-size: var(--fs-display);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+}
+.t-title-1 { font-weight: var(--w-extrabold); font-size: var(--fs-title-1); line-height: var(--lh-snug); letter-spacing: var(--ls-snug); }
+.t-title-2 { font-weight: var(--w-bold); font-size: var(--fs-title-2); line-height: var(--lh-snug); letter-spacing: var(--ls-snug); }
+.t-title-3 { font-weight: var(--w-bold); font-size: var(--fs-title-3); line-height: var(--lh-snug); letter-spacing: var(--ls-snug); }
+.t-h1 { font-weight: var(--w-bold); font-size: var(--fs-h1); line-height: var(--lh-snug); }
+.t-h2 { font-weight: var(--w-semibold); font-size: var(--fs-h2); line-height: var(--lh-snug); }
+.t-h3 { font-weight: var(--w-semibold); font-size: var(--fs-h3); line-height: var(--lh-normal); }
+.t-body { font-weight: var(--w-regular); font-size: var(--fs-body); line-height: var(--lh-relaxed); }
+.t-body-strong { font-weight: var(--w-semibold); font-size: var(--fs-body); line-height: var(--lh-relaxed); }
+.t-sm { font-weight: var(--w-medium); font-size: var(--fs-sm); line-height: var(--lh-normal); }
+.t-caption { font-weight: var(--w-medium); font-size: var(--fs-xs); line-height: var(--lh-normal); color: var(--text-tertiary); }
+
+/* eyebrow / overline label */
+.t-eyebrow {
+  font-weight: var(--w-semibold);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* financial figures — always tabular */
+.t-figure {
+  font-weight: var(--w-extrabold);
+  letter-spacing: var(--ls-snug);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }

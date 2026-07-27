@@ -1,0 +1,13 @@
+/* ============================================================
+   STERLING — Personal CFO Design System
+   Global entry point. Consumers link ONLY this file.
+   Order matters: fonts → tokens → base reset.
+   ============================================================ */
+
+@import "./tokens/fonts.css";
+@import "./tokens/colors.css";
+@import "./tokens/typography.css";
+@import "./tokens/spacing.css";
+@import "./tokens/effects.css";
+@import "./tokens/motion.css";
+@import "./tokens/base.css";
