@@ -196,6 +196,19 @@ See the Firestore layout and security-rule rationale in `firestore.rules`; summa
 subcollections). `paymentOrders/{referenceId}` (top-level, publicly-readable-by-id) was deleted along with
 Razorpay.
 
+**Aggregation queries need the summed fields in the index too** — this bit us once and is easy to re-break.
+`ledger_repository.dart`'s `fetchSalesSummary` (the dashboard's sales card) runs
+`.aggregate(count(), sum('amount'), sum('points'))` over a `type`/`status`/`createdAt`-range filter. A
+composite index covering only the *filtered/ordered* fields (`type`/`status`/`createdAt`) is **not** enough:
+Firestore requires every `sum()`ed field appended to the index as well, and the equality fields come first in
+its canonical ordering. Hence the two indexes in `firestore.indexes.json`:
+`status,type,createdAt,amount,points` (the earn aggregate) and `status,type,createdAt,points` (the redeem
+aggregate, which sums only points). Getting this wrong throws `failed-precondition` on *every* call, and
+because `fetchSalesSummary` is read through an `AsyncValue` whose `.value` is null on error, the card silently
+renders `?? 0` in every tile — it looks like "the filter does nothing / sales are always zero" rather than an
+error. If you change which fields the aggregate sums, the index must change with it; the thrown error's
+`create_composite=` link decodes to exactly the index Firestore wants.
+
 `businesses/{id}` fields beyond the client-writable allow-list
 (`displayName`/`logoUrl`/`pointsRatio`/`otpEnabled`/`gateway`) — all Cloud-Functions-only:
 - `status`: `'pending'` | `'active'` — self-signed-up businesses start pending; admin-created ones start active.
@@ -214,6 +227,14 @@ Verified: `flutter analyze` clean, `flutter test` passing (bar the known day-bou
 `flutter build web --release` succeeds. Deployed and smoke-tested **live** (not simulated) via a scripted
 Playwright browser against the demo account: login → session registration → an actual `earnCredit` call →
 correction/reversal, all confirmed working end-to-end after the session-cap feature shipped.
+
+Both hosting targets now serve the same build — the stale-production/session-cap gap is closed (verified by
+`curl https://hyperpoints.hyperdynamics.in/main.dart.js | grep -c beginSession` → 1, plus a 200 on the
+`/app/dashboard` deep link confirming the SPA rewrite survived). The sales-summary aggregate indexes are
+deployed and `READY`, verified by running `fetchSalesSummary`'s exact query shape against production for both
+live businesses (`demo` and `arul`) across today/week/month — the card returns real figures now instead of
+zeros. Note Firestore index builds take several minutes and report `failed-precondition` ("currently
+building") until `state: READY`; that intermediate error is expected, not a misconfiguration.
 
 ### Already live — don't redo this
 
@@ -274,26 +295,6 @@ correction/reversal, all confirmed working end-to-end after the session-cap feat
 
 ### Pending — ordered by what unblocks the most
 
-0. **Production (Hostinger) is running a stale build missing the whole session-cap feature — deploy it.**
-   User-reported symptom (2026-08-11): could log into the same account on Mac + phone simultaneously even with
-   `maxConcurrentSessions` set to 1, and only found out via a "you've been signed out" error *while redeeming*
-   — and bumping the cap to 2 didn't fix it either, both devices kept logging each other out. Root cause,
-   confirmed by diffing the deployed bundles: `curl .../main.dart.js | grep beginSession` — **0 matches on
-   `hyperpoints.hyperdynamics.in`, 1 match on `hyperdynamics-loyalty.web.app`**. The session-cap feature's
-   *backend* (`beginSession`, `requireActiveSession` in `earnCredit`/`redeemPoints`/`reverseTransaction`) is
-   already live — Cloud Functions are one shared backend for both hosting targets — but its *frontend* (the
-   code that actually calls `beginSession` on login and registers a device) was only ever pushed to Firebase
-   staging, never to Hostinger. Net effect: any device logging in through the production site never gets a
-   `sessionId` claim at all, so it can **never** satisfy `requireActiveSession` on a mutating call — not "logs
-   out the other device," but "can never win," regardless of the cap value. This is why it looked contradictory:
-   the enforcement is real and working exactly as designed, just only reachable from a frontend that was never
-   shipped to the domain being tested on. **Fix**: rebuild (`flutter build web --release`), and deploy to
-   `hyperpoints.hyperdynamics.in` via the zip + hPanel File Manager process (see "Already live" above) — this
-   was sitting ready to go before this was reported, just never confirmed/pushed. Also worth checking: the
-   `demo` business's `activeSessions` field almost certainly already has stale entries from extensive
-   Playwright-driven testing against staging earlier — if login issues persist on that account specifically
-   after the production deploy, that's why; a fresh login from any device with the new build will naturally
-   clear it (oldest gets evicted), no manual cleanup needed.
 1. **Google Sign-In real Web Client ID.** `lib/data/auth_repository.dart`'s `googleWebClientId` constant is
    still a placeholder. Someone needs to enable Google as a sign-in provider in Firebase Console →
    Authentication → Sign-in method (manual, can't be scripted), which auto-generates the real Web Client ID —
@@ -303,20 +304,10 @@ correction/reversal, all confirmed working end-to-end after the session-cap feat
    only happens on first tap of a Google button).
 2. **Real MSG91 account.** `MSG91_MANAGED_AUTH_KEY` is a placeholder — needed for the "managed by us" OTP
    gateway option to send real SMS. (BYO gateway businesses supply their own key via Settings regardless.)
-3. **Missing Firestore composite index for the sales-summary aggregation query — likely what's behind the
-   "sales filter not working as expected" report (2026-08-11).** Noticed independently via browser console
-   during unrelated testing: `RunAggregationQuery` on `transactions` (type/status/createdAt range, used by the
-   dashboard's sales-summary card and its today/week/month/custom filter) throws `failed-precondition` with a
-   400 on every call. Hadn't been confirmed as user-visible before, but a query that always 400s would produce
-   exactly "the filter doesn't seem to do anything" — the card likely just shows stale/zero numbers regardless
-   of which range is selected. Check `firestore.indexes.json` against what the actual query in
-   `ledger_repository.dart`'s `fetchSalesSummary` needs and add the missing composite index; Firestore's own
-   error message (visible in browser dev tools console) usually includes a direct console link to create it.
-4. **Node.js 20 deprecation.** Every Functions deploy warns that Node 20 is decommissioned 2026-10-30. Bump
-   `functions/package.json`'s `engines.node` to `"22"` and redeploy sometime before then.
-5. **No local emulator wiring.** `main.dart` always talks to production Firebase; there's no debug-flag path
-   to point the app at `firebase emulators:start` for local dev without touching real data.
-6. **Android untested end-to-end.** Blocked locally only by unaccepted SDK licenses
+3. **No local emulator wiring.** `main.dart` always talks to production Firebase; there's no debug-flag path
+   to point the app at `firebase emulators:start` for local dev without touching real data. (User's stated
+   preference is a separate staging Firebase project over emulator wiring — revisit before building this.)
+4. **Android untested end-to-end.** Blocked locally only by unaccepted SDK licenses
    (`flutter doctor --android-licenses`, an interactive step) — not a code issue, but it means the Android
    build has only been analyzed/compiled, never actually run on a device/emulator (unlike web and iOS, both
    verified running).
