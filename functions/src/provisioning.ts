@@ -1,6 +1,6 @@
-import { FieldValue } from "firebase-admin/firestore";
-import { auth, businessRef, statsDoc, db } from "./lib/admin";
-import { randomSlugSuffix, slugify } from "./lib/format";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { auth, businessRef, statsDoc } from "./lib/admin";
+import { oneYearFrom, randomSlugSuffix, slugify } from "./lib/format";
 import { enqueueEmail, welcomeEmailHtml } from "./lib/mail";
 import { LOGIN_EMAIL_DOMAIN } from "./config";
 
@@ -25,61 +25,117 @@ async function reserveBusinessId(preferredName: string): Promise<string> {
 }
 
 /**
- * Runs once a Razorpay payment_link.paid webhook is verified: mints the
- * business's admin login, creates its Firestore profile, and emails the
- * credentials. Idempotent on `paymentOrders/{referenceId}.businessId`
- * being already set, so a duplicate webhook delivery is a no-op.
+ * Mints a business's admin login and creates its Firestore profile, and (if
+ * an owner email is given) emails the credentials. Used by the operator
+ * console's direct-create path — for businesses paid outside the normal
+ * self-signup flow (friends & family, test accounts).
  */
-export async function provisionBusiness(params: {
-  referenceId: string;
-  razorpayPaymentLinkId: string;
-  customerName: string;
-  customerEmail: string;
-}): Promise<void> {
-  const orderRef = db.collection("paymentOrders").doc(params.referenceId);
-
-  const alreadyProvisioned = await db.runTransaction(async (tx) => {
-    const snap = await tx.get(orderRef);
-    if (snap.exists && snap.get("businessId")) return true;
-    tx.set(
-      orderRef,
-      { status: "paid", razorpayPaymentLinkId: params.razorpayPaymentLinkId, paidAt: FieldValue.serverTimestamp() },
-      { merge: true }
-    );
-    return false;
-  });
-  if (alreadyProvisioned) return;
-
-  const businessId = await reserveBusinessId(params.customerName);
+export async function createBusinessAccount(params: {
+  businessName: string;
+  plan: "base" | "otp";
+  ownerEmail?: string;
+  ownerPhone?: string;
+  source: "admin";
+}): Promise<{ businessId: string; loginEmail: string; tempPassword: string }> {
+  const businessId = await reserveBusinessId(params.businessName);
   const tempPassword = randomPassword();
   const loginEmail = `${businessId}@${LOGIN_EMAIL_DOMAIN.value()}`;
 
   const userRecord = await auth.createUser({
     email: loginEmail,
     password: tempPassword,
-    displayName: params.customerName || businessId,
+    displayName: params.businessName || businessId,
   });
   await auth.setCustomUserClaims(userRecord.uid, { businessId });
 
   await businessRef(businessId).set({
-    displayName: params.customerName || businessId,
+    displayName: params.businessName || businessId,
     logoUrl: null,
     pointsRatio: 10,
-    otpEnabled: false,
+    otpEnabled: params.plan === "otp",
+    birthdayEnabled: false,
+    whatsappEnabled: false,
+    exportEnabled: false,
     gateway: "managed",
-    ownerEmail: params.customerEmail,
+    ownerEmail: params.ownerEmail ?? "",
+    ownerPhone: params.ownerPhone ?? "",
+    source: params.source,
     status: "active",
+    subscriptionRenewsAt: Timestamp.fromDate(oneYearFrom()),
     createdAt: FieldValue.serverTimestamp(),
   });
   await statsDoc(businessId).set({ todayEarnCount: 0, todayRedeemCount: 0, pointsOutstanding: 0 });
 
-  await orderRef.set({ businessId }, { merge: true });
-
-  if (params.customerEmail) {
+  if (params.ownerEmail) {
     await enqueueEmail(
-      params.customerEmail,
+      params.ownerEmail,
       "your hyperdynamics loyalty manager account is ready",
       welcomeEmailHtml({ businessId, loginEmail, tempPassword })
     );
   }
+
+  return { businessId, loginEmail, tempPassword };
+}
+
+/**
+ * Shared by both self-signup credential paths (email/password via
+ * `createPendingBusinessAccount` below, and Google via `selfSignupGoogle` in
+ * `selfSignup.ts`) — the only difference between them is how the Firebase
+ * Auth user came to exist (minted here with a chosen password, vs. already
+ * created by a client-side Google sign-in). Both land the business in
+ * `status: 'pending'` until an admin approves it.
+ */
+export async function provisionPendingBusiness(params: {
+  businessName: string;
+  plan: "base" | "otp";
+  ownerEmail: string;
+  ownerPhone?: string;
+  uid: string;
+}): Promise<{ businessId: string }> {
+  const businessId = await reserveBusinessId(params.businessName);
+  await auth.setCustomUserClaims(params.uid, { businessId });
+
+  await businessRef(businessId).set({
+    displayName: params.businessName || businessId,
+    logoUrl: null,
+    pointsRatio: 10,
+    otpEnabled: params.plan === "otp",
+    birthdayEnabled: false,
+    whatsappEnabled: false,
+    exportEnabled: false,
+    gateway: "managed",
+    ownerEmail: params.ownerEmail,
+    ownerPhone: params.ownerPhone ?? "",
+    source: "selfSignup",
+    status: "pending",
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  await statsDoc(businessId).set({ todayEarnCount: 0, todayRedeemCount: 0, pointsOutstanding: 0 });
+
+  return { businessId };
+}
+
+/**
+ * Email/password self-signup — mints the Firebase Auth user with the
+ * caller-chosen password, then hands off to `provisionPendingBusiness`.
+ */
+export async function createPendingBusinessAccount(params: {
+  businessName: string;
+  plan: "base" | "otp";
+  email: string;
+  password: string;
+  ownerPhone?: string;
+}): Promise<{ businessId: string }> {
+  const userRecord = await auth.createUser({
+    email: params.email,
+    password: params.password,
+    displayName: params.businessName || undefined,
+  });
+  return provisionPendingBusiness({
+    businessName: params.businessName,
+    plan: params.plan,
+    ownerEmail: params.email,
+    ownerPhone: params.ownerPhone,
+    uid: userRecord.uid,
+  });
 }

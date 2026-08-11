@@ -2,7 +2,7 @@
   "name": "functions",
   "description": "Cloud Functions for HyperDynamics Loyalty Manager",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "scripts": {
@@ -16,8 +16,7 @@
   "dependencies": {
     "axios": "^1.7.9",
     "firebase-admin": "^13.0.2",
-    "firebase-functions": "^6.3.1",
-    "razorpay": "^2.9.5"
+    "firebase-functions": "^6.3.1"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

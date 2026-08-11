@@ -27,14 +27,18 @@ class Coin extends StatefulWidget {
 }
 
 class _CoinState extends State<Coin> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1400),
-  );
+  // Assigned in initState, not via a `late` field initializer: the vsync
+  // ancestor lookup it triggers needs the widget properly mounted. A
+  // lazy `late final = AnimationController(...)` initializer runs on
+  // first access — which, for any non-spinning Coin (the common case,
+  // since nothing else ever touches `_controller`), ends up being inside
+  // dispose(), on an already-deactivating widget, and throws.
+  late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
     if (widget.spin) _controller.repeat();
   }
 

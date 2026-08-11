@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/ledger_repository.dart';
 import '../models/customer.dart';
 import '../models/loyalty_transaction.dart';
+import '../models/sales_summary.dart';
 import 'auth_providers.dart';
 import 'repository_providers.dart';
 
@@ -17,6 +18,26 @@ final recentTransactionsProvider = StreamProvider<List<LoyaltyTransaction>>((ref
   final businessId = _businessId(ref);
   if (businessId == null) return Stream.value(const []);
   return ref.watch(ledgerRepositoryProvider).watchRecentTransactions(businessId);
+});
+
+final customersListProvider = StreamProvider.family<List<Customer>, bool>((ref, descending) {
+  final businessId = _businessId(ref);
+  if (businessId == null) return Stream.value(const []);
+  return ref.watch(ledgerRepositoryProvider).watchCustomers(businessId, descending: descending);
+});
+
+final todaysBirthdaysProvider = StreamProvider<List<Customer>>((ref) {
+  final businessId = _businessId(ref);
+  if (businessId == null) return Stream.value(const []);
+  return ref.watch(ledgerRepositoryProvider).watchTodaysBirthdays(businessId);
+});
+
+typedef DateRange = ({DateTime start, DateTime end});
+
+final salesSummaryProvider = FutureProvider.family<SalesSummary, DateRange>((ref, range) {
+  final businessId = _businessId(ref);
+  if (businessId == null) return Future.value(SalesSummary.zero);
+  return ref.watch(ledgerRepositoryProvider).fetchSalesSummary(businessId, start: range.start, end: range.end);
 });
 
 final customerWatchProvider = StreamProvider.family<Customer?, String>((ref, phone) {

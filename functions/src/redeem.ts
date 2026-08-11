@@ -1,7 +1,8 @@
 import { onCall, HttpsError } from "firebase-functions/https";
 import { FieldValue } from "firebase-admin/firestore";
 import { db, businessRef, customersCol, transactionsCol } from "./lib/admin";
-import { requireBusinessId } from "./lib/authContext";
+import { requireBusinessId, getCallerIp } from "./lib/authContext";
+import { requireActiveSession } from "./sessions";
 import { digitsOnly } from "./lib/format";
 import { verifyOtpOrThrow } from "./otp";
 import { MSG91_MANAGED_AUTH_KEY } from "./config";
@@ -14,6 +15,7 @@ import { MSG91_MANAGED_AUTH_KEY } from "./config";
  */
 export const redeemPoints = onCall({ secrets: [MSG91_MANAGED_AUTH_KEY] }, async (request) => {
   const businessId = requireBusinessId(request);
+  await requireActiveSession(request);
   const phone = digitsOnly(String(request.data?.phone ?? ""));
   const points = Number(request.data?.points);
   const otpCode = request.data?.otpCode ? String(request.data.otpCode) : undefined;
@@ -57,6 +59,7 @@ export const redeemPoints = onCall({ secrets: [MSG91_MANAGED_AUTH_KEY] }, async 
       otpOverride,
       createdAt: FieldValue.serverTimestamp(),
       createdBy: request.auth!.uid,
+      ip: getCallerIp(request),
     });
 
     return nextBalance;

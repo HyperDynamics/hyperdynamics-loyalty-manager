@@ -254,6 +254,7 @@ class _DetailPanel extends StatelessWidget {
         row('type', isEarn ? 'earn (points credited)' : 'redeem (points spent)'),
         row('phone', maskPhone(txn.phone)),
         row(isEarn ? 'bill amount' : 'redeemed', isEarn ? formatInr(txn.amount ?? 0) : '${txn.points} pts'),
+        if (isEarn) row('bill number', txn.billNumber?.isNotEmpty == true ? txn.billNumber! : '—'),
         row('points', '${isEarn ? '+' : '−'}${txn.points}', color: isEarn ? AppColors.gain : AppColors.loss),
         row('timestamp', relativeTimeLabel(txn.createdAt)),
         row('txn id', txn.id),

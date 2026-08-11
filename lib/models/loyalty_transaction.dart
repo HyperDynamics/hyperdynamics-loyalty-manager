@@ -14,6 +14,7 @@ class LoyaltyTransaction {
     required this.status,
     required this.otpOverride,
     required this.createdAt,
+    this.billNumber,
   });
 
   final String id;
@@ -24,6 +25,7 @@ class LoyaltyTransaction {
   final TxnStatus status;
   final bool otpOverride;
   final DateTime createdAt;
+  final String? billNumber;
 
   bool get isEarn => type == TxnType.earn;
   bool get isReversed => status == TxnStatus.reversed;
@@ -41,5 +43,6 @@ class LoyaltyTransaction {
         status: map['status'] == 'reversed' ? TxnStatus.reversed : TxnStatus.ok,
         otpOverride: (map['otpOverride'] as bool?) ?? false,
         createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+        billNumber: map['billNumber'] as String?,
       );
 }

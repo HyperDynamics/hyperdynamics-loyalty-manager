@@ -56,3 +56,6 @@ ui-debug.log
 
 # Firebase CLI local deploy cache
 .firebase/
+
+# Ad-hoc Hostinger deploy zip (rebuild from `flutter build web --release` when needed)
+hyperpoints_deploy.zip

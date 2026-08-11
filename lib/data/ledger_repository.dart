@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:intl/intl.dart';
 import '../models/customer.dart';
 import '../models/loyalty_transaction.dart';
+import '../models/sales_summary.dart';
 
 class LedgerFailure implements Exception {
   const LedgerFailure(this.message, {this.code});
@@ -63,6 +65,20 @@ class LedgerRepository {
     return snap.exists ? Customer.fromMap(snap.id, snap.data()!) : null;
   }
 
+  Stream<List<Customer>> watchCustomers(String businessId, {bool descending = true, int limit = 200}) =>
+      _customers(businessId).orderBy('balance', descending: descending).limit(limit).snapshots().map(
+            (q) => q.docs.map((d) => Customer.fromMap(d.id, d.data())).toList(),
+          );
+
+  /// Customers whose `birthdayMonthDay` (server-derived from `dob` at earn
+  /// time) matches today — a cheap, single-field-indexed equality query
+  /// that works regardless of how many customers the business has, unlike
+  /// filtering the balance-ordered `watchCustomers` list.
+  Stream<List<Customer>> watchTodaysBirthdays(String businessId) => _customers(businessId)
+      .where('birthdayMonthDay', isEqualTo: DateFormat('MM-dd').format(DateTime.now()))
+      .snapshots()
+      .map((q) => q.docs.map((d) => Customer.fromMap(d.id, d.data())).toList());
+
   Stream<List<LoyaltyTransaction>> watchRecentTransactions(String businessId, {int limit = 6}) =>
       _txns(businessId).orderBy('createdAt', descending: true).limit(limit).snapshots().map(
             (q) => q.docs.map((d) => LoyaltyTransaction.fromMap(d.id, d.data())).toList(),
@@ -84,6 +100,31 @@ class LedgerRepository {
         );
   }
 
+  /// One-shot totals for a date range — aggregate queries are billed as a
+  /// single read regardless of match count, so this is cheap to re-run on
+  /// every filter change without needing a live subscription. Filters out
+  /// reversed transactions so a correction doesn't inflate the period's
+  /// sales/points figures.
+  Future<SalesSummary> fetchSalesSummary(String businessId, {required DateTime start, required DateTime end}) async {
+    final txns = _txns(businessId);
+    Query<Map<String, dynamic>> ranged(String type) => txns
+        .where('type', isEqualTo: type)
+        .where('status', isEqualTo: 'ok')
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThan: Timestamp.fromDate(end));
+
+    final earnAgg = await ranged('earn').aggregate(count(), sum('amount'), sum('points')).get();
+    final redeemAgg = await ranged('redeem').aggregate(count(), sum('points')).get();
+
+    return SalesSummary(
+      totalSales: earnAgg.getSum('amount') ?? 0,
+      earnCount: earnAgg.count ?? 0,
+      redeemCount: redeemAgg.count ?? 0,
+      pointsIssued: (earnAgg.getSum('points') ?? 0).toInt(),
+      pointsRedeemed: (redeemAgg.getSum('points') ?? 0).toInt(),
+    );
+  }
+
   Stream<BusinessStats> watchStats(String businessId) => _db
       .collection('businesses')
       .doc(businessId)
@@ -94,9 +135,16 @@ class LedgerRepository {
 
   // ---- writes (callables) ----
 
-  Future<({int points, int newBalance})> earnCredit({required String phone, required num amount}) => _call(
+  Future<({int points, int newBalance})> earnCredit({
+    required String phone,
+    required num amount,
+    required String billNumber,
+    String? name,
+    String? dob,
+  }) =>
+      _call(
         'earnCredit',
-        {'phone': phone, 'amount': amount},
+        {'phone': phone, 'amount': amount, 'billNumber': billNumber, 'name': ?name, 'dob': ?dob},
         (data) => (points: (data['points'] as num).toInt(), newBalance: (data['newBalance'] as num).toInt()),
       );
 

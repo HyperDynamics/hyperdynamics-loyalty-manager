@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../data/ledger_repository.dart';
 import '../../providers/business_providers.dart';
 import '../../providers/feedback_providers.dart';
@@ -16,8 +17,9 @@ import '../../widgets/coin.dart';
 import '../../widgets/list_row.dart';
 
 class _SessionEntry {
-  const _SessionEntry({required this.phone, required this.amount, required this.points});
+  const _SessionEntry({required this.phone, required this.name, required this.amount, required this.points});
   final String phone;
+  final String name;
   final num amount;
   final int points;
 }
@@ -32,10 +34,24 @@ class EarnScreen extends ConsumerStatefulWidget {
 
 class _EarnScreenState extends ConsumerState<EarnScreen> {
   String _phone = '';
+  String _name = '';
   String _amount = '';
+  String _billNumber = '';
+  DateTime? _dob;
   bool _submitting = false;
   String? _networkError;
   final List<_SessionEntry> _sessionEntries = [];
+
+  Future<void> _pickDob() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dob ?? DateTime(now.year - 25),
+      firstDate: DateTime(now.year - 110),
+      lastDate: now,
+    );
+    if (picked != null) setState(() => _dob = picked);
+  }
 
   Future<void> _submit() async {
     setState(() {
@@ -43,13 +59,24 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
       _networkError = null;
     });
     final phone = digitsOnly(_phone);
+    final name = _name.trim();
     final amount = num.tryParse(_amount) ?? 0;
+    final billNumber = _billNumber.trim();
+    final dob = _dob;
     try {
-      final result = await ref.read(ledgerRepositoryProvider).earnCredit(phone: phone, amount: amount);
+      final result = await ref.read(ledgerRepositoryProvider).earnCredit(
+            phone: phone,
+            amount: amount,
+            billNumber: billNumber,
+            name: name.isEmpty ? null : name,
+            dob: dob == null ? null : DateFormat('yyyy-MM-dd').format(dob),
+          );
       if (!mounted) return;
       setState(() {
         _amount = '';
-        _sessionEntries.insert(0, _SessionEntry(phone: phone, amount: amount, points: result.points));
+        _billNumber = '';
+        _dob = null;
+        _sessionEntries.insert(0, _SessionEntry(phone: phone, name: name, amount: amount, points: result.points));
         if (_sessionEntries.length > 5) _sessionEntries.removeLast();
       });
       ref.read(toastProvider.notifier).show('${result.points} points credited to ${maskPhone(phone)}', ToastTone.success);
@@ -72,7 +99,7 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
     final phoneError = (phoneDigits.isNotEmpty && phoneDigits.length < 10) ? 'enter a 10-digit number' : null;
     final amountNum = num.tryParse(_amount) ?? 0;
     final preview = amountNum > 0 ? '${formatInr(amountNum)} → ${pointsForAmount(amountNum, ratio)} pts' : 'enter a bill amount';
-    final valid = phoneDigits.length == 10 && amountNum > 0;
+    final valid = phoneDigits.length == 10 && amountNum > 0 && _billNumber.trim().isNotEmpty;
 
     final form = AppCard(
       padding: 26,
@@ -95,6 +122,45 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
           ),
           const SizedBox(height: 18),
           AppInput(
+            label: 'customer name (optional)',
+            placeholder: 'helps identify them at redeem',
+            value: _name,
+            onChanged: (v) => setState(() => _name = v),
+          ),
+          const SizedBox(height: 18),
+          Text('date of birth (optional)', style: AppTypography.xs),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _pickDob,
+            child: Container(
+              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceInput,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.borderSoft),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _dob == null ? 'helps power birthday rewards' : DateFormat('d MMM yyyy').format(_dob!),
+                      style: AppTypography.body.copyWith(color: _dob == null ? AppColors.textDisabled : AppColors.textPrimary),
+                    ),
+                  ),
+                  if (_dob != null)
+                    GestureDetector(
+                      onTap: () => setState(() => _dob = null),
+                      child: const Icon(Icons.close_rounded, size: 18, color: AppColors.textTertiary),
+                    )
+                  else
+                    const Icon(Icons.cake_outlined, size: 18, color: AppColors.textTertiary),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          AppInput(
             label: 'bill amount',
             placeholder: '0',
             prefixText: '₹',
@@ -106,6 +172,18 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
             }),
             numeric: true,
           ),
+          const SizedBox(height: 18),
+          AppInput(
+            label: 'bill number',
+            placeholder: 'as printed on the receipt',
+            value: _billNumber,
+            onChanged: (v) => setState(() {
+              _billNumber = v;
+              _networkError = null;
+            }),
+          ),
+          const SizedBox(height: 4),
+          Text('required — keeps every earn traceable to a real bill.', style: AppTypography.xs2),
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -183,7 +261,7 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
           else ...[
             for (final e in _sessionEntries)
               AppListRow(
-                title: maskPhone(e.phone),
+                title: e.name.isEmpty ? maskPhone(e.phone) : '${e.name} · ${maskPhone(e.phone)}',
                 subtitle: '${formatInr(e.amount)} · just now',
                 amount: '+${e.points} pts',
                 amountTone: AmountTone.gain,

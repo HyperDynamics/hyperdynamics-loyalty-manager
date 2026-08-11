@@ -31,3 +31,10 @@ export function slugify(input: string): string {
     .replace(/^-+|-+$/g, "");
   return base.length > 0 ? base.slice(0, 24) : "business";
 }
+
+/** One year after [from] (or now, if omitted) — used to set/extend the ₹999/year subscription renewal date. */
+export function oneYearFrom(from?: Date): Date {
+  const next = from ? new Date(from) : new Date();
+  next.setFullYear(next.getFullYear() + 1);
+  return next;
+}

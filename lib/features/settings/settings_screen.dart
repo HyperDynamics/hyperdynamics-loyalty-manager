@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import '../../data/auth_repository.dart';
 import '../../models/business.dart';
 import '../../providers/business_providers.dart';
@@ -230,6 +231,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 20),
+
+          // Subscription
+          if (business.subscriptionRenewsAt != null) ...[
+            AppCard(
+              padding: 26,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('subscription', style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 15)),
+                        const SizedBox(height: 4),
+                        Text(
+                          business.subscriptionLapsed
+                              ? 'lapsed on ${DateFormat('d MMM yyyy').format(business.subscriptionRenewsAt!)} — contact us to renew (₹999/year).'
+                              : '₹999/year — renews ${DateFormat('d MMM yyyy').format(business.subscriptionRenewsAt!)}.',
+                          style: AppTypography.sm.copyWith(height: 1.5, color: business.subscriptionLapsed ? AppColors.loss : null),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
 
           // OTP module
           AppCard(

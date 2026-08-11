@@ -4,10 +4,11 @@ service firebase.storage {
   match /b/{bucket}/o {
     // H. Settings — business logo upload. Publicly readable (just a logo,
     // no PII); writable only by the owning business's signed-in admin.
-    match /businesses/{businessId}/logo.{ext} {
+    match /businesses/{businessId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null
         && request.auth.token.businessId == businessId
+        && fileName.matches('logo\\.(png|svg)')
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }

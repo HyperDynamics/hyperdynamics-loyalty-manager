@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/auth_repository.dart';
+import '../../providers/auth_providers.dart';
 import '../../providers/feedback_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../theme/app_colors.dart';
@@ -24,15 +26,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String _password = '';
   String? _error;
   bool _submitting = false;
+  bool _submittingGoogle = false;
+
+  Future<void> _loginWithGoogle() async {
+    setState(() {
+      _error = null;
+      _submittingGoogle = true;
+    });
+    try {
+      await ref.read(authRepositoryProvider).loginWithGoogle();
+      await ref.read(authSessionProvider.notifier).beginDeviceSession();
+      // On success, the router redirect fires automatically.
+    } on AuthFailure catch (e) {
+      setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _submittingGoogle = false);
+    }
+  }
 
   Future<void> _submit() async {
     setState(() => _error = null);
     final repo = ref.read(authRepositoryProvider);
     setState(() => _submitting = true);
     try {
-      await repo.login(businessId: _businessId, password: _password);
+      // Self-signed-up businesses log in with their own real email; every
+      // other business (demo, admin-created, legacy razorpay) logs in with
+      // its business id, which this screen still handles unchanged.
+      if (_businessId.contains('@')) {
+        await repo.loginWithEmail(email: _businessId, password: _password);
+      } else {
+        await repo.login(businessId: _businessId, password: _password);
+      }
+      await ref.read(authSessionProvider.notifier).beginDeviceSession();
       // On success, authSessionProvider updates and the router redirect
-      // to /app/dashboard fires automatically.
+      // to /app/dashboard (or /pending) fires automatically.
     } on AuthFailure catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -51,13 +78,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("enter your business id and we'll email you a reset link.", style: AppTypography.sm),
+            Text("enter your business id or email and we'll email you a reset link.", style: AppTypography.sm),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
               autofocus: true,
               style: AppTypography.body,
-              decoration: const InputDecoration(hintText: 'your business id'),
+              decoration: const InputDecoration(hintText: 'your business id or email'),
             ),
           ],
         ),
@@ -69,7 +96,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
     if (businessId == null || businessId.trim().isEmpty) return;
     try {
-      await ref.read(authRepositoryProvider).sendPasswordReset(businessId);
+      final repo = ref.read(authRepositoryProvider);
+      if (businessId.contains('@')) {
+        await repo.sendPasswordResetForEmail(businessId);
+      } else {
+        await repo.sendPasswordReset(businessId);
+      }
       if (mounted) {
         ref.read(toastProvider.notifier).show('reset link sent to your registered email.', ToastTone.info);
       }
@@ -101,7 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 18),
                   Text('admin login', style: AppTypography.h1),
                   const SizedBox(height: 4),
-                  Text('log in with your business id and password.', style: AppTypography.sm),
+                  Text('log in with your business id (or email) and password.', style: AppTypography.sm),
                   const SizedBox(height: 24),
                   if (_error != null) ...[
                     Container(
@@ -117,8 +149,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 18),
                   ],
                   AppInput(
-                    label: 'business id',
-                    placeholder: 'your business id',
+                    label: 'business id or email',
+                    placeholder: 'your business id or email',
                     value: _businessId,
                     onChanged: (v) => setState(() {
                       _businessId = v;
@@ -152,7 +184,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     block: true,
                     size: AppButtonSize.lg,
                     loading: _submitting,
-                    onPressed: _submit,
+                    onPressed: _submittingGoogle ? null : _submit,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: AppColors.borderSubtle)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text('or', style: AppTypography.xs2),
+                      ),
+                      const Expanded(child: Divider(color: AppColors.borderSubtle)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  AppButton(
+                    label: 'sign in with google',
+                    variant: AppButtonVariant.outline,
+                    block: true,
+                    size: AppButtonSize.lg,
+                    loading: _submittingGoogle,
+                    onPressed: _submitting ? null : _loginWithGoogle,
+                  ),
+                  const SizedBox(height: 18),
+                  Align(
+                    alignment: Alignment.center,
+                    child: GestureDetector(
+                      onTap: () => context.go('/signup'),
+                      child: Text("don't have an account? sign up", style: AppTypography.xs.copyWith(color: AppColors.textLink)),
+                    ),
                   ),
                 ],
               ),

@@ -2,6 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/https";
 import { FieldValue } from "firebase-admin/firestore";
 import { db, customersCol, transactionsCol } from "./lib/admin";
 import { requireBusinessId } from "./lib/authContext";
+import { requireActiveSession } from "./sessions";
 
 /**
  * G. Correction Tool — reverses a posted transaction, adjusting the
@@ -11,6 +12,7 @@ import { requireBusinessId } from "./lib/authContext";
  */
 export const reverseTransaction = onCall(async (request) => {
   const businessId = requireBusinessId(request);
+  await requireActiveSession(request);
   const txnId = String(request.data?.txnId ?? "");
   if (!txnId) throw new HttpsError("invalid-argument", "txnId is required.");
 
