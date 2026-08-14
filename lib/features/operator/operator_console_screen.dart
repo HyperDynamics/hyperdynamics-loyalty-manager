@@ -18,6 +18,7 @@ import '../../widgets/app_segmented_control.dart';
 import '../../widgets/app_toggle.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/coin.dart';
+import 'staff_dialog.dart';
 
 /// Operator console — creates a business account directly, bypassing
 /// self-signup. For friends & family or anyone admin wants to onboard
@@ -373,6 +374,7 @@ class _ManageBusinessesCardState extends ConsumerState<_ManageBusinessesCard> {
     bool? birthdayEnabled,
     bool? whatsappEnabled,
     bool? exportEnabled,
+    bool? salesDashboardEnabled,
     int? maxConcurrentSessions,
   }) async {
     try {
@@ -381,6 +383,7 @@ class _ManageBusinessesCardState extends ConsumerState<_ManageBusinessesCard> {
             birthdayEnabled: birthdayEnabled,
             whatsappEnabled: whatsappEnabled,
             exportEnabled: exportEnabled,
+            salesDashboardEnabled: salesDashboardEnabled,
             maxConcurrentSessions: maxConcurrentSessions,
           );
       ref.invalidate(adminBusinessesProvider(_search));
@@ -461,6 +464,7 @@ class _ManageBusinessesCardState extends ConsumerState<_ManageBusinessesCard> {
                           onToggle: _toggle,
                           onRenew: () => _renew(business),
                           onCheckLocations: () => _checkMultiLocation(business),
+                          onManageStaff: () => showStaffDialog(context, business),
                         ),
                         const SizedBox(height: 10),
                       ],
@@ -474,17 +478,25 @@ class _ManageBusinessesCardState extends ConsumerState<_ManageBusinessesCard> {
 }
 
 class _ManageBusinessRow extends StatelessWidget {
-  const _ManageBusinessRow({required this.business, required this.onToggle, required this.onRenew, required this.onCheckLocations});
+  const _ManageBusinessRow({
+    required this.business,
+    required this.onToggle,
+    required this.onRenew,
+    required this.onCheckLocations,
+    required this.onManageStaff,
+  });
   final AdminBusinessSummary business;
   final Future<void> Function(
     AdminBusinessSummary business, {
     bool? birthdayEnabled,
     bool? whatsappEnabled,
     bool? exportEnabled,
+    bool? salesDashboardEnabled,
     int? maxConcurrentSessions,
   }) onToggle;
   final VoidCallback onRenew;
   final VoidCallback onCheckLocations;
+  final VoidCallback onManageStaff;
 
   @override
   Widget build(BuildContext context) {
@@ -523,13 +535,18 @@ class _ManageBusinessRow extends StatelessWidget {
                 checked: business.exportEnabled,
                 onChanged: (v) => onToggle(business, exportEnabled: v),
               ),
+              _FeatureSwitch(
+                label: 'sales card',
+                checked: business.salesDashboardEnabled,
+                onChanged: (v) => onToggle(business, salesDashboardEnabled: v),
+              ),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('max devices', style: AppTypography.xs2),
+              Text('devices / account', style: AppTypography.xs2),
               const SizedBox(width: 10),
               _StepperButton(
                 icon: Icons.remove_rounded,
@@ -548,7 +565,7 @@ class _ManageBusinessRow extends StatelessWidget {
                     : null,
               ),
               const SizedBox(width: 10),
-              Text('· ${business.activeSessionCount} active now', style: AppTypography.xs2),
+              Text('· ${business.activeSessionCount} device(s) signed in', style: AppTypography.xs2),
             ],
           ),
           const SizedBox(height: 10),
@@ -564,6 +581,8 @@ class _ManageBusinessRow extends StatelessWidget {
                   style: AppTypography.xs2.copyWith(color: lapsed ? AppColors.loss : AppColors.textTertiary),
                 ),
               ),
+              AppButton(label: 'staff', size: AppButtonSize.sm, variant: AppButtonVariant.ghost, onPressed: onManageStaff),
+              const SizedBox(width: 8),
               AppButton(label: 'check locations', size: AppButtonSize.sm, variant: AppButtonVariant.ghost, onPressed: onCheckLocations),
               const SizedBox(width: 8),
               if (renewsAt != null)

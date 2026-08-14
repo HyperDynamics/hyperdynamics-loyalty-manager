@@ -15,6 +15,7 @@ import '../../widgets/app_card.dart';
 import '../../widgets/app_input.dart';
 import '../../widgets/coin.dart';
 import '../../widgets/list_row.dart';
+import '../../widgets/actor_chip.dart';
 
 class _SessionEntry {
   const _SessionEntry({required this.phone, required this.name, required this.amount, required this.points});
@@ -37,6 +38,7 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
   String _name = '';
   String _amount = '';
   String _billNumber = '';
+  String _manualPoints = '';
   DateTime? _dob;
   bool _submitting = false;
   String? _networkError;
@@ -63,6 +65,7 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
     final amount = num.tryParse(_amount) ?? 0;
     final billNumber = _billNumber.trim();
     final dob = _dob;
+    final manualPoints = int.tryParse(_manualPoints.trim());
     try {
       final result = await ref.read(ledgerRepositoryProvider).earnCredit(
             phone: phone,
@@ -70,11 +73,13 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
             billNumber: billNumber,
             name: name.isEmpty ? null : name,
             dob: dob == null ? null : DateFormat('yyyy-MM-dd').format(dob),
+            manualPoints: manualPoints,
           );
       if (!mounted) return;
       setState(() {
         _amount = '';
         _billNumber = '';
+        _manualPoints = '';
         _dob = null;
         _sessionEntries.insert(0, _SessionEntry(phone: phone, name: name, amount: amount, points: result.points));
         if (_sessionEntries.length > 5) _sessionEntries.removeLast();
@@ -98,8 +103,24 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
     final phoneDigits = digitsOnly(_phone);
     final phoneError = (phoneDigits.isNotEmpty && phoneDigits.length < 10) ? 'enter a 10-digit number' : null;
     final amountNum = num.tryParse(_amount) ?? 0;
-    final preview = amountNum > 0 ? '${formatInr(amountNum)} → ${pointsForAmount(amountNum, ratio)} pts' : 'enter a bill amount';
-    final valid = phoneDigits.length == 10 && amountNum > 0 && _billNumber.trim().isNotEmpty;
+
+    final manualEnabled = business?.manualPointsEnabled ?? false;
+    final manualRaw = _manualPoints.trim();
+    final manualPoints = manualEnabled && manualRaw.isNotEmpty ? int.tryParse(manualRaw) : null;
+    final manualError = (manualEnabled && manualRaw.isNotEmpty && manualPoints == null) ? 'whole numbers only' : null;
+    final awardedPoints = manualPoints ?? pointsForAmount(amountNum, ratio);
+
+    final preview = amountNum > 0
+        ? (manualPoints != null
+            ? '${formatInr(amountNum)} → $awardedPoints pts (manual)'
+            : '${formatInr(amountNum)} → $awardedPoints pts')
+        : 'enter a bill amount';
+
+    final billRequired = business?.billNumberRequired ?? true;
+    final valid = phoneDigits.length == 10 &&
+        amountNum > 0 &&
+        manualError == null &&
+        (!billRequired || _billNumber.trim().isNotEmpty);
 
     final form = AppCard(
       padding: 26,
@@ -174,7 +195,7 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
           ),
           const SizedBox(height: 18),
           AppInput(
-            label: 'bill number',
+            label: billRequired ? 'bill number' : 'bill number (optional)',
             placeholder: 'as printed on the receipt',
             value: _billNumber,
             onChanged: (v) => setState(() {
@@ -183,7 +204,33 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
             }),
           ),
           const SizedBox(height: 4),
-          Text('required — keeps every earn traceable to a real bill.', style: AppTypography.xs2),
+          Text(
+            billRequired
+                ? 'required — keeps every earn traceable to a real bill.'
+                : 'optional — your business has bill numbers switched off in settings.',
+            style: AppTypography.xs2,
+          ),
+          if (manualEnabled) ...[
+            const SizedBox(height: 18),
+            AppInput(
+              label: 'points (optional override)',
+              placeholder: 'leave blank to use the ratio',
+              value: _manualPoints,
+              numeric: true,
+              error: manualError,
+              onChanged: (v) => setState(() {
+                _manualPoints = digitsOnly(v);
+                _networkError = null;
+              }),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              manualPoints != null
+                  ? 'awarding $manualPoints pts instead of the calculated ${pointsForAmount(amountNum, ratio)}.'
+                  : 'enter a figure only to override the calculated points.',
+              style: AppTypography.xs2,
+            ),
+          ],
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -283,7 +330,14 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
       children: [
         Text('earn', style: AppTypography.overline),
         const SizedBox(height: 6),
-        Text('credit points', style: AppTypography.h1),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: Text('credit points', style: AppTypography.h1)),
+            const SizedBox(width: 12),
+            const ActorChip(),
+          ],
+        ),
         const SizedBox(height: 24),
         if (wide)
           Row(

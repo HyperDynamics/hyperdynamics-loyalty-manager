@@ -1,7 +1,7 @@
 import { onCall, HttpsError } from "firebase-functions/https";
 import { FieldValue } from "firebase-admin/firestore";
 import { db, businessRef, customersCol, transactionsCol } from "./lib/admin";
-import { requireBusinessId, getCallerIp } from "./lib/authContext";
+import { requireBusinessId, getCallerIp, getActorLabel, getRole, assertStaffPermission } from "./lib/authContext";
 import { requireActiveSession } from "./sessions";
 import { digitsOnly } from "./lib/format";
 import { verifyOtpOrThrow } from "./otp";
@@ -26,6 +26,7 @@ export const redeemPoints = onCall({ secrets: [MSG91_MANAGED_AUTH_KEY] }, async 
 
   const bizSnap = await businessRef(businessId).get();
   if (!bizSnap.exists) throw new HttpsError("not-found", "business not found.");
+  assertStaffPermission(request, "redeem", bizSnap.get("staffPermissions"));
   const otpEnabled = (bizSnap.get("otpEnabled") as boolean | undefined) ?? false;
 
   let otpOverride = false;
@@ -59,6 +60,8 @@ export const redeemPoints = onCall({ secrets: [MSG91_MANAGED_AUTH_KEY] }, async 
       otpOverride,
       createdAt: FieldValue.serverTimestamp(),
       createdBy: request.auth!.uid,
+      createdByName: getActorLabel(request),
+      createdByRole: getRole(request),
       ip: getCallerIp(request),
     });
 

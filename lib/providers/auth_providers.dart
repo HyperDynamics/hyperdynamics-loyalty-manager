@@ -1,10 +1,16 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/business.dart' show BusinessRole;
 import 'repository_providers.dart';
 
 class AuthSession {
-  const AuthSession({required this.user, required this.businessId, this.sessionId});
+  const AuthSession({
+    required this.user,
+    required this.businessId,
+    this.sessionId,
+    this.role = BusinessRole.owner,
+  });
   final User user;
   final String businessId;
 
@@ -12,6 +18,18 @@ class AuthSession {
   /// see `AuthSessionNotifier.beginDeviceSession` and `app.dart`'s
   /// eviction listener.
   final String? sessionId;
+
+  /// Owner vs staff within this business. Drives nav/route gating alongside
+  /// the business's `staffPermissions`; the server re-checks independently, so
+  /// this is presentation, not the security boundary.
+  final BusinessRole role;
+
+  bool get isOwner => role == BusinessRole.owner;
+
+  /// Human label for the "who is at the till" line on Earn/Redeem.
+  String get actorLabel => user.displayName?.trim().isNotEmpty == true
+      ? user.displayName!.trim()
+      : (user.email ?? '').split('@').first;
 }
 
 /// Single source of truth for "who's logged in, for which business" —
@@ -40,7 +58,8 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession?> {
     final businessId = await repo.currentBusinessId(forceRefresh: forceRefresh);
     if (businessId == null) return null;
     final sessionId = await repo.currentSessionId(forceRefresh: forceRefresh);
-    return AuthSession(user: user, businessId: businessId, sessionId: sessionId);
+    final role = await repo.currentRole(forceRefresh: forceRefresh);
+    return AuthSession(user: user, businessId: businessId, sessionId: sessionId, role: role);
   }
 
   /// Forces a real token refresh — needed right after a claim was just
@@ -70,7 +89,12 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession?> {
     // background by `beginSession`.
     final current = state.value;
     if (current != null) {
-      state = AsyncData(AuthSession(user: current.user, businessId: current.businessId, sessionId: sessionId));
+      state = AsyncData(AuthSession(
+        user: current.user,
+        businessId: current.businessId,
+        sessionId: sessionId,
+        role: current.role,
+      ));
     }
   }
 }

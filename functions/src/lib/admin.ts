@@ -25,6 +25,10 @@ export function otpsCol(businessId: string) {
   return businessRef(businessId).collection("otps");
 }
 
+export function staffCol(businessId: string) {
+  return businessRef(businessId).collection("staff");
+}
+
 export function statsDoc(businessId: string) {
   return businessRef(businessId).collection("stats").doc("summary");
 }

@@ -70,12 +70,27 @@ class LedgerRepository {
             (q) => q.docs.map((d) => Customer.fromMap(d.id, d.data())).toList(),
           );
 
+  /// The `MM-dd` keys covered by a birthday window of today + the next
+  /// [windowDays] - 1 days. Built by walking real `DateTime`s rather than doing
+  /// string maths on `MM-dd`, so December→January wrap and leap days come out
+  /// right for free.
+  static List<String> birthdayWindowKeys(int windowDays, {DateTime? from}) {
+    final start = from ?? DateTime.now();
+    final fmt = DateFormat('MM-dd');
+    final days = windowDays.clamp(1, 10);
+    return List.generate(days, (i) => fmt.format(DateTime(start.year, start.month, start.day + i)))
+        .toSet()
+        .toList();
+  }
+
   /// Customers whose `birthdayMonthDay` (server-derived from `dob` at earn
-  /// time) matches today — a cheap, single-field-indexed equality query
-  /// that works regardless of how many customers the business has, unlike
-  /// filtering the balance-ordered `watchCustomers` list.
-  Stream<List<Customer>> watchTodaysBirthdays(String businessId) => _customers(businessId)
-      .where('birthdayMonthDay', isEqualTo: DateFormat('MM-dd').format(DateTime.now()))
+  /// time) falls in the business's configured window — today, through the next
+  /// [windowDays] - 1 days. A `whereIn` over at most 10 `MM-dd` keys, so it
+  /// stays a cheap single-field-indexed lookup regardless of customer count,
+  /// unlike filtering the balance-ordered `watchCustomers` list. `whereIn`
+  /// allows up to 30 values, comfortably above the 10-day maximum.
+  Stream<List<Customer>> watchUpcomingBirthdays(String businessId, {int windowDays = 1}) => _customers(businessId)
+      .where('birthdayMonthDay', whereIn: birthdayWindowKeys(windowDays))
       .snapshots()
       .map((q) => q.docs.map((d) => Customer.fromMap(d.id, d.data())).toList());
 
@@ -135,16 +150,28 @@ class LedgerRepository {
 
   // ---- writes (callables) ----
 
+  /// [billNumber] may be empty when the business has turned off
+  /// `billNumberRequired`; [manualPoints], when non-null, replaces the
+  /// ratio-derived figure and is rejected server-side unless the business has
+  /// `manualPointsEnabled`.
   Future<({int points, int newBalance})> earnCredit({
     required String phone,
     required num amount,
     required String billNumber,
     String? name,
     String? dob,
+    int? manualPoints,
   }) =>
       _call(
         'earnCredit',
-        {'phone': phone, 'amount': amount, 'billNumber': billNumber, 'name': ?name, 'dob': ?dob},
+        {
+          'phone': phone,
+          'amount': amount,
+          'billNumber': billNumber,
+          'name': ?name,
+          'dob': ?dob,
+          'manualPoints': ?manualPoints,
+        },
         (data) => (points: (data['points'] as num).toInt(), newBalance: (data['newBalance'] as num).toInt()),
       );
 

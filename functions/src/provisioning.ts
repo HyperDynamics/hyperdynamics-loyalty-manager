@@ -3,6 +3,19 @@ import { auth, businessRef, statsDoc } from "./lib/admin";
 import { oneYearFrom, randomSlugSuffix, slugify } from "./lib/format";
 import { enqueueEmail, welcomeEmailHtml } from "./lib/mail";
 import { LOGIN_EMAIL_DOMAIN } from "./config";
+import { DEFAULT_STAFF_PERMISSIONS } from "./lib/authContext";
+
+/** Defaults for the owner-configurable settings added alongside staff roles.
+ * `billNumberRequired` starts true and `salesDashboardEnabled` starts true so a
+ * newly provisioned business behaves exactly as every business did before those
+ * switches existed — the toggles subtract capability, they don't add it. */
+const BUSINESS_SETTINGS_DEFAULTS = {
+  billNumberRequired: true,
+  manualPointsEnabled: false,
+  birthdayWindowDays: 1,
+  salesDashboardEnabled: true,
+  staffPermissions: DEFAULT_STAFF_PERMISSIONS,
+};
 
 const PASSWORD_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
 
@@ -46,7 +59,7 @@ export async function createBusinessAccount(params: {
     password: tempPassword,
     displayName: params.businessName || businessId,
   });
-  await auth.setCustomUserClaims(userRecord.uid, { businessId });
+  await auth.setCustomUserClaims(userRecord.uid, { businessId, role: "owner" });
 
   await businessRef(businessId).set({
     displayName: params.businessName || businessId,
@@ -63,6 +76,7 @@ export async function createBusinessAccount(params: {
     status: "active",
     subscriptionRenewsAt: Timestamp.fromDate(oneYearFrom()),
     createdAt: FieldValue.serverTimestamp(),
+    ...BUSINESS_SETTINGS_DEFAULTS,
   });
   await statsDoc(businessId).set({ todayEarnCount: 0, todayRedeemCount: 0, pointsOutstanding: 0 });
 
@@ -93,7 +107,7 @@ export async function provisionPendingBusiness(params: {
   uid: string;
 }): Promise<{ businessId: string }> {
   const businessId = await reserveBusinessId(params.businessName);
-  await auth.setCustomUserClaims(params.uid, { businessId });
+  await auth.setCustomUserClaims(params.uid, { businessId, role: "owner" });
 
   await businessRef(businessId).set({
     displayName: params.businessName || businessId,
@@ -109,6 +123,7 @@ export async function provisionPendingBusiness(params: {
     source: "selfSignup",
     status: "pending",
     createdAt: FieldValue.serverTimestamp(),
+    ...BUSINESS_SETTINGS_DEFAULTS,
   });
   await statsDoc(businessId).set({ todayEarnCount: 0, todayRedeemCount: 0, pointsOutstanding: 0 });
 

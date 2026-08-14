@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../models/business.dart';
+import '../../providers/auth_providers.dart';
 import '../../providers/business_providers.dart';
 import '../../providers/ledger_providers.dart';
 import '../../theme/app_colors.dart';
@@ -26,6 +27,15 @@ class DashboardScreen extends ConsumerWidget {
     final recent = ref.watch(recentTransactionsProvider).value ?? const [];
     final wide = MediaQuery.sizeOf(context).width >= AppSpacing.wideBreakpoint;
     final todayLabel = 'today · ${DateFormat('d MMM').format(DateTime.now()).toLowerCase()}';
+
+    // Owners are unrestricted; staff see only what their business's policy
+    // grants, so the quick-action cards match the nav they actually have.
+    final isOwner = ref.watch(authSessionProvider).value?.isOwner ?? true;
+    final perms = business?.staffPermissions ?? StaffPermissions.defaults;
+    final canEarn = isOwner || perms.earn;
+    final canRedeem = isOwner || perms.redeem;
+    final canCorrect = isOwner || perms.correction;
+    final showSales = (business?.salesDashboardEnabled ?? true) && (isOwner || perms.sales);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,13 +73,20 @@ class DashboardScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 14),
         _ActionRow(wide: wide, cards: [
-          _ActionCard(icon: Icons.add_circle_outline_rounded, title: 'credit points', subtitle: 'log a bill & earn', onTap: () => context.go('/app/earn')),
-          _ActionCard(icon: Icons.star_outline_rounded, title: 'redeem points', subtitle: 'look up & spend', onTap: () => context.go('/app/redeem')),
-          _ActionCard(icon: Icons.history_rounded, title: 'fix a mistake', subtitle: 'reverse a txn', onTap: () => context.go('/app/correction')),
+          if (canEarn)
+            _ActionCard(icon: Icons.add_circle_outline_rounded, title: 'credit points', subtitle: 'log a bill & earn', onTap: () => context.go('/app/earn')),
+          if (canRedeem)
+            _ActionCard(icon: Icons.star_outline_rounded, title: 'redeem points', subtitle: 'look up & spend', onTap: () => context.go('/app/redeem')),
+          if (canCorrect)
+            _ActionCard(icon: Icons.history_rounded, title: 'fix a mistake', subtitle: 'reverse a txn', onTap: () => context.go('/app/correction')),
         ]),
         const SizedBox(height: 24),
-        const _SalesSummarySection(),
-        const SizedBox(height: 24),
+        // Two independent gates: the operator sells the card per business, and
+        // the owner decides whether their staff see revenue figures.
+        if (showSales) ...[
+          const _SalesSummarySection(),
+          const SizedBox(height: 24),
+        ],
         AppCard(
           padding: 20,
           child: Column(

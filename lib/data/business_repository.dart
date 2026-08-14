@@ -39,6 +39,27 @@ class BusinessRepository {
   Future<void> setOtpEnabled(String businessId, bool enabled) =>
       _doc(businessId).update({'otpEnabled': enabled});
 
+  /// Owner-only operational switches. Rule-guarded to owners (`isOwner` in
+  /// firestore.rules) and re-checked server-side in `earn.ts` — a staff account
+  /// reaching this would be rejected by rules, not just hidden in the UI.
+  Future<void> updateOperations(
+    String businessId, {
+    bool? billNumberRequired,
+    bool? manualPointsEnabled,
+    int? birthdayWindowDays,
+  }) {
+    final data = <String, dynamic>{
+      'billNumberRequired': ?billNumberRequired,
+      'manualPointsEnabled': ?manualPointsEnabled,
+      'birthdayWindowDays': ?birthdayWindowDays?.clamp(1, 10),
+    };
+    if (data.isEmpty) return Future.value();
+    return _doc(businessId).update(data);
+  }
+
+  Future<void> updateStaffPermissions(String businessId, StaffPermissions permissions) =>
+      _doc(businessId).update({'staffPermissions': permissions.toMap()});
+
   Future<void> setGateway(String businessId, OtpGateway gateway) =>
       _doc(businessId).update({'gateway': gateway == OtpGateway.byo ? 'byo' : 'managed'});
 

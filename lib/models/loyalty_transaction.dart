@@ -15,6 +15,10 @@ class LoyaltyTransaction {
     required this.otpOverride,
     required this.createdAt,
     this.billNumber,
+    this.createdByName,
+    this.createdByRole,
+    this.manualPoints = false,
+    this.reversedByName,
   });
 
   final String id;
@@ -26,6 +30,21 @@ class LoyaltyTransaction {
   final bool otpOverride;
   final DateTime createdAt;
   final String? billNumber;
+
+  /// Who posted this, stamped server-side at write time (`getActorLabel`) so
+  /// the row can name them without a user lookup. Null on transactions written
+  /// before staff roles shipped — render those without an attribution line
+  /// rather than guessing.
+  final String? createdByName;
+  final String? createdByRole;
+
+  /// True when the points were typed in rather than derived from the bill
+  /// amount — only possible where the business has `manualPointsEnabled`.
+  final bool manualPoints;
+
+  final String? reversedByName;
+
+  bool get isStaffEntry => createdByRole == 'staff';
 
   bool get isEarn => type == TxnType.earn;
   bool get isReversed => status == TxnStatus.reversed;
@@ -44,5 +63,13 @@ class LoyaltyTransaction {
         otpOverride: (map['otpOverride'] as bool?) ?? false,
         createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
         billNumber: map['billNumber'] as String?,
+        createdByName: (map['createdByName'] as String?)?.trim().isNotEmpty == true
+            ? (map['createdByName'] as String).trim()
+            : null,
+        createdByRole: map['createdByRole'] as String?,
+        manualPoints: (map['manualPoints'] as bool?) ?? false,
+        reversedByName: (map['reversedByName'] as String?)?.trim().isNotEmpty == true
+            ? (map['reversedByName'] as String).trim()
+            : null,
       );
 }

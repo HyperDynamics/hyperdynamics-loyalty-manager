@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../models/business.dart' show BusinessRole;
 
 /// Generic, non-leaking failure message — deliberately doesn't distinguish
 /// "unknown business id" from "wrong password", matching the prototype's
@@ -136,6 +137,17 @@ class AuthRepository {
     if (user == null) return null;
     final token = await user.getIdTokenResult(forceRefresh);
     return token.claims?['sessionId'] as String?;
+  }
+
+  /// This account's role within its business. Absent claim ⇒ owner: every
+  /// account provisioned before staff roles shipped is a business's own login,
+  /// so defaulting to `staff` here would lock every existing business out of
+  /// its own settings.
+  Future<BusinessRole> currentRole({bool forceRefresh = false}) async {
+    final user = _auth.currentUser;
+    if (user == null) return BusinessRole.owner;
+    final token = await user.getIdTokenResult(forceRefresh);
+    return token.claims?['role'] == 'staff' ? BusinessRole.staff : BusinessRole.owner;
   }
 
   /// Registers this device as an active session for the signed-in business

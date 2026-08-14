@@ -15,10 +15,23 @@ import '../features/shell/dashboard_screen.dart';
 import '../features/signup/pending_approval_screen.dart';
 import '../features/signup/signup_screen.dart';
 import '../features/subscription/subscription_lapsed_screen.dart';
+import '../models/business.dart';
 import '../providers/admin_providers.dart';
 import '../providers/auth_providers.dart';
 import '../providers/business_providers.dart';
 import 'go_router_refresh.dart';
+
+/// Route-level mirror of `app_shell.dart`'s nav gating. `/app/settings` is
+/// absent on purpose — it is owner-only, so staff never pass this for it.
+bool _staffMayVisit(String location, StaffPermissions p) => switch (location) {
+      '/app/dashboard' => true,
+      '/app/earn' => p.earn,
+      '/app/redeem' => p.redeem,
+      '/app/customers' => p.customers,
+      '/app/birthdays' => p.birthdays,
+      '/app/correction' => p.correction,
+      _ => false,
+    };
 
 GoRouter buildRouter(WidgetRef ref, GoRouterRefreshNotifier refresh) {
   return GoRouter(
@@ -71,6 +84,16 @@ GoRouter buildRouter(WidgetRef ref, GoRouterRefreshNotifier refresh) {
         if (pending && !onPending) return '/pending';
         if (lapsed && !onLapsed) return '/subscription-lapsed';
         if (!pending && !lapsed && (onAuthGateRoute || onPending || onLapsed)) return '/app/dashboard';
+
+        // Staff typing a URL for a screen their owner didn't grant them lands
+        // back on the dashboard rather than seeing an empty or broken page.
+        // The nav hides these already; this closes the direct-URL path, and the
+        // callables themselves reject the write regardless — that's the real
+        // boundary, this is just so the UI never lies about what's reachable.
+        if (onAppRoute && sessionAsync.value?.isOwner == false) {
+          final permissions = business?.staffPermissions ?? StaffPermissions.defaults;
+          if (!_staffMayVisit(loc, permissions)) return '/app/dashboard';
+        }
       }
       return null;
     },

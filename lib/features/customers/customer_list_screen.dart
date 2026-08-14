@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/customer.dart';
+import '../../providers/auth_providers.dart';
 import '../../providers/business_providers.dart';
 import '../../providers/feedback_providers.dart';
 import '../../providers/ledger_providers.dart';
@@ -49,6 +50,13 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       ref.read(toastProvider.notifier).show("export isn't enabled for your plan — contact us to enable it.", ToastTone.info);
       return;
     }
+    // Separate from the plan gate above: the add-on can be bought and the owner
+    // still not want staff downloading the whole customer list.
+    final isOwner = ref.read(authSessionProvider).value?.isOwner ?? true;
+    if (!isOwner && !(business?.staffPermissions.export ?? false)) {
+      ref.read(toastProvider.notifier).show('your account is not allowed to export.', ToastTone.info);
+      return;
+    }
     final businessName = business?.displayName ?? 'business';
     setState(() => _exporting = true);
     try {
@@ -67,7 +75,10 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   @override
   Widget build(BuildContext context) {
     final customers = ref.watch(customersListProvider(_sort == 'desc')).value ?? const [];
-    final exportEnabled = ref.watch(currentBusinessProvider).value?.exportEnabled ?? false;
+    final business = ref.watch(currentBusinessProvider).value;
+    final isOwner = ref.watch(authSessionProvider).value?.isOwner ?? true;
+    final exportEnabled = (business?.exportEnabled ?? false) &&
+        (isOwner || (business?.staffPermissions.export ?? false));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

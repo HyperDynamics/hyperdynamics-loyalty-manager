@@ -7,24 +7,54 @@ export interface ActiveSession {
   sessionId: string;
   deviceLabel: string;
   createdAtMs: number;
+  /** Absent on entries written before staff roles existed — see `trimSessionsToCap`. */
+  uid?: string;
 }
 
 const DEFAULT_MAX_SESSIONS = 1;
+const LEGACY_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** Oldest-first, keeping only the newest `cap` sessions — shared by `beginSession` (adding a new
- * session that may push the business over cap) and `adminUpdateBusinessFeatures` (an admin lowering
- * the cap itself, which must evict existing over-cap sessions immediately rather than waiting for
- * the next login to trim them). */
-export function trimSessionsToCap(sessions: ActiveSession[], cap: number): ActiveSession[] {
-  const sorted = sessions.slice().sort((a, b) => a.createdAtMs - b.createdAtMs);
-  return sorted.slice(Math.max(0, sorted.length - cap));
+/**
+ * Caps concurrent devices **per user account**, not per business. Each account —
+ * the owner's and every staff member's — gets its own allowance of `cap` devices,
+ * so a business with several staff no longer has them signing each other out; the
+ * original point of the cap (one account can't be shared across branches) still
+ * holds, since it's still enforced within each account.
+ *
+ * Entries with no `uid` predate staff roles and can't be attributed to an account.
+ * They're deliberately left in place rather than evicted — dropping them would sign
+ * out every already-logged-in owner the moment this deploys — and simply age out
+ * after `LEGACY_SESSION_TTL_MS` so the array can't grow forever.
+ *
+ * Shared by `beginSession` (adding a device that may push its own account over cap)
+ * and `adminUpdateBusinessFeatures` (an operator lowering the cap, which must evict
+ * over-cap devices immediately rather than waiting for each account's next login).
+ */
+export function trimSessionsToCap(sessions: ActiveSession[], cap: number, now = Date.now()): ActiveSession[] {
+  const legacy = sessions.filter((s) => !s.uid && now - s.createdAtMs < LEGACY_SESSION_TTL_MS);
+
+  const byUid = new Map<string, ActiveSession[]>();
+  for (const s of sessions) {
+    if (!s.uid) continue;
+    const list = byUid.get(s.uid) ?? [];
+    list.push(s);
+    byUid.set(s.uid, list);
+  }
+
+  const kept: ActiveSession[] = [...legacy];
+  for (const list of byUid.values()) {
+    list.sort((a, b) => a.createdAtMs - b.createdAtMs);
+    kept.push(...list.slice(Math.max(0, list.length - cap)));
+  }
+  return kept.sort((a, b) => a.createdAtMs - b.createdAtMs);
 }
 
 /**
  * Called right after a device signs in (once its `businessId` claim is
  * confirmed present) — registers this device as an active session, evicting
- * the oldest session(s) if that pushes the business over its configured
- * `maxConcurrentSessions` (admin-set, default 1 — see `adminUpdateBusinessFeatures`).
+ * this *same account's* oldest session(s) if that pushes it over the business's
+ * configured `maxConcurrentSessions` (admin-set, default 1 — see
+ * `adminUpdateBusinessFeatures`). Other accounts on the business are untouched.
  * `earnCredit`/`redeemPoints`/`reverseTransaction` then refuse to run for any
  * device whose session got evicted (see `requireActiveSession` below).
  */
@@ -38,7 +68,7 @@ export const beginSession = onCall(async (request) => {
   const maxSessions = (snap.get("maxConcurrentSessions") as number | undefined) ?? DEFAULT_MAX_SESSIONS;
   const existing = ((snap.get("activeSessions") as ActiveSession[] | undefined) ?? []).slice();
 
-  existing.push({ sessionId, deviceLabel, createdAtMs: Date.now() });
+  existing.push({ sessionId, deviceLabel, createdAtMs: Date.now(), uid: request.auth!.uid });
   const kept = trimSessionsToCap(existing, maxSessions);
 
   await ref.set({ activeSessions: kept }, { merge: true });

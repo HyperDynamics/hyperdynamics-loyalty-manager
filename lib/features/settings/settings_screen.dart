@@ -40,6 +40,108 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _pwNew = '';
   bool _savingPassword = false;
 
+  /// Each of these writes a single field straight through — no local draft
+  /// state, so the toggle reflects what's actually stored (the business doc
+  /// stream re-renders this screen on success, and a failed write leaves the
+  /// switch where it was rather than lying about a change that didn't land).
+  Future<void> _updateOperations(
+    Business business, {
+    bool? billNumberRequired,
+    bool? manualPointsEnabled,
+    int? birthdayWindowDays,
+  }) async {
+    try {
+      await ref.read(businessRepositoryProvider).updateOperations(
+            business.id,
+            billNumberRequired: billNumberRequired,
+            manualPointsEnabled: manualPointsEnabled,
+            birthdayWindowDays: birthdayWindowDays,
+          );
+    } catch (_) {
+      if (mounted) ref.read(toastProvider.notifier).show('could not save. please try again.', ToastTone.error);
+    }
+  }
+
+  Future<void> _updateStaffPermissions(Business business, StaffPermissions next) async {
+    try {
+      await ref.read(businessRepositoryProvider).updateStaffPermissions(business.id, next);
+    } catch (_) {
+      if (mounted) ref.read(toastProvider.notifier).show('could not save. please try again.', ToastTone.error);
+    }
+  }
+
+  /// Add-on-gated rows are hidden rather than shown-disabled: granting staff
+  /// access to a module the business hasn't bought would be a toggle that does
+  /// nothing, which reads as a bug.
+  List<Widget> _staffPermissionRows(Business business) {
+    final p = business.staffPermissions;
+    final rows = <({String title, String body, bool value, StaffPermissions Function(bool) apply})>[
+      (
+        title: 'earn points',
+        body: 'credit points against a bill.',
+        value: p.earn,
+        apply: (v) => p.copyWith(earn: v),
+      ),
+      (
+        title: 'redeem points',
+        body: 'spend a customer’s balance.',
+        value: p.redeem,
+        apply: (v) => p.copyWith(redeem: v),
+      ),
+      (
+        title: 'corrections',
+        body: 'reverse a past transaction. leave off if only you should undo entries.',
+        value: p.correction,
+        apply: (v) => p.copyWith(correction: v),
+      ),
+      (
+        title: 'customer list',
+        body: 'browse customers and their balances.',
+        value: p.customers,
+        apply: (v) => p.copyWith(customers: v),
+      ),
+      if (business.birthdayEnabled)
+        (
+          title: 'birthdays',
+          body: 'see upcoming birthdays and send wishes.',
+          value: p.birthdays,
+          apply: (v) => p.copyWith(birthdays: v),
+        ),
+      if (business.exportEnabled)
+        (
+          title: 'export',
+          body: 'download the customer list as csv/pdf.',
+          value: p.export,
+          apply: (v) => p.copyWith(export: v),
+        ),
+      if (business.salesDashboardEnabled)
+        (
+          title: 'sales figures',
+          body: 'see revenue totals on the dashboard.',
+          value: p.sales,
+          apply: (v) => p.copyWith(sales: v),
+        ),
+    ];
+
+    final out = <Widget>[];
+    for (var i = 0; i < rows.length; i++) {
+      if (i > 0) {
+        out
+          ..add(const SizedBox(height: 16))
+          ..add(const Divider(color: AppColors.borderSubtle, height: 1))
+          ..add(const SizedBox(height: 14));
+      }
+      final row = rows[i];
+      out.add(_SettingRow(
+        title: row.title,
+        body: row.body,
+        checked: row.value,
+        onChanged: (v) => _updateStaffPermissions(business, row.apply(v)),
+      ));
+    }
+    return out;
+  }
+
   Future<void> _saveProfile(Business business) async {
     setState(() => _savingProfile = true);
     try {
@@ -149,6 +251,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final name = _nameDraft ?? business.displayName;
     final ratio = _ratioDraft ?? business.pointsRatio.toString();
+    final ratioValue = int.tryParse(ratio);
+    final ratioError = ratio.isEmpty
+        ? 'enter a ratio'
+        : (ratioValue == null || ratioValue < 1 ? 'must be at least ₹1' : null);
     final pwDisabled = !(_pwCur.isNotEmpty && _pwNew.length >= 4);
 
     return ConstrainedBox(
@@ -215,8 +321,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   prefixText: '₹',
                   numeric: true,
                   value: ratio,
-                  onChanged: (v) => setState(() => _ratioDraft = digitsOnly(v).isEmpty ? '1' : digitsOnly(v)),
-                  hint: '₹$ratio spent earns the customer 1 point',
+                  // Deliberately does NOT coerce an empty field back to '1'. It used
+                  // to, which made the field impossible to retype: clearing it
+                  // instantly refilled '1', so typing "50" left you with "150".
+                  // Empty is a valid *in-progress* state; it's rejected at save
+                  // time by `ratioError` instead.
+                  onChanged: (v) => setState(() => _ratioDraft = digitsOnly(v)),
+                  error: ratioError,
+                  hint: ratioValue != null
+                      ? '₹$ratioValue spent earns the customer 1 point'
+                      : 'how many rupees of spend earn 1 point',
                 ),
                 const SizedBox(height: 18),
                 Align(
@@ -224,7 +338,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: AppButton(
                     label: 'save profile',
                     loading: _savingProfile,
-                    onPressed: () => _saveProfile(business),
+                    onPressed: ratioError == null ? () => _saveProfile(business) : null,
                   ),
                 ),
               ],
@@ -259,6 +373,95 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 20),
           ],
+
+          // Point-of-sale behaviour — what the Earn form asks for.
+          AppCard(
+            padding: 26,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('earn screen', style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 15)),
+                const SizedBox(height: 18),
+                _SettingRow(
+                  title: 'require a bill number',
+                  body: business.billNumberRequired
+                      ? 'staff must enter the bill/receipt number on every earn — ties each entry to a real receipt.'
+                      : 'the bill number field is still shown, but can be left blank.',
+                  checked: business.billNumberRequired,
+                  onChanged: (v) => _updateOperations(business, billNumberRequired: v),
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: AppColors.borderSubtle, height: 1),
+                const SizedBox(height: 14),
+                _SettingRow(
+                  title: 'allow manual points',
+                  body: business.manualPointsEnabled
+                      ? 'staff can override the calculated points on a bill — those entries are flagged as manual.'
+                      : 'points are always calculated from the bill amount at the ratio above.',
+                  checked: business.manualPointsEnabled,
+                  onChanged: (v) => _updateOperations(business, manualPointsEnabled: v),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Birthday window — only meaningful when the add-on is on.
+          if (business.birthdayEnabled) ...[
+            AppCard(
+              padding: 26,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('birthday reminders', style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 15)),
+                  const SizedBox(height: 4),
+                  Text(
+                    business.birthdayWindowDays <= 1
+                        ? 'the birthdays screen shows customers whose birthday is today.'
+                        : 'the birthdays screen shows customers whose birthday falls within the next ${business.birthdayWindowDays} days, so you can reach out ahead of time.',
+                    style: AppTypography.sm.copyWith(height: 1.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text('days ahead', style: AppTypography.sm.copyWith(color: AppColors.textSecondary)),
+                      const Spacer(),
+                      _Stepper(
+                        value: business.birthdayWindowDays,
+                        min: 1,
+                        max: 10,
+                        onChanged: (v) => _updateOperations(business, birthdayWindowDays: v),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // What staff accounts may do — one policy for every staff member on
+          // this business. Re-checked server-side on every call.
+          AppCard(
+            padding: 26,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('staff permissions', style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 15)),
+                const SizedBox(height: 4),
+                Text(
+                  'applies to every staff account on this business. staff are added by hyperdynamics — contact us to add or remove one. settings stay owner-only.',
+                  style: AppTypography.sm.copyWith(height: 1.5),
+                ),
+                const SizedBox(height: 18),
+                ..._staffPermissionRows(business),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
 
           // OTP module
           AppCard(
@@ -370,6 +573,82 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+}
+
+/// A labelled description + switch, matching the layout the OTP card already
+/// uses inline — extracted here because the operations and staff-permission
+/// cards need the same shape a dozen times over.
+class _SettingRow extends StatelessWidget {
+  const _SettingRow({
+    required this.title,
+    required this.body,
+    required this.checked,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String body;
+  final bool checked;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTypography.sm.copyWith(fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+              const SizedBox(height: 4),
+              Text(body, style: AppTypography.sm.copyWith(height: 1.5)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        AppToggle(checked: checked, onChanged: onChanged),
+      ],
+    );
+  }
+}
+
+/// Bounded −/+ number picker, same visual language as the operator console's
+/// session-cap control.
+class _Stepper extends StatelessWidget {
+  const _Stepper({required this.value, required this.min, required this.max, required this.onChanged});
+
+  final int value;
+  final int min;
+  final int max;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: value > min ? () => onChanged(value - 1) : null,
+          icon: const Icon(Icons.remove, size: 18),
+        ),
+        SizedBox(
+          width: 34,
+          child: Text(
+            '$value',
+            textAlign: TextAlign.center,
+            style: AppTypography.sm.copyWith(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          ),
+        ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: value < max ? () => onChanged(value + 1) : null,
+          icon: const Icon(Icons.add, size: 18),
+        ),
+      ],
     );
   }
 }

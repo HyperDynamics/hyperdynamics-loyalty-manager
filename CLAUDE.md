@@ -63,7 +63,7 @@ details not otherwise specified:
   sheet on desktop web, so it was switched to the same centered-dialog convention every other popup in this
   app uses).
 - `models/` — plain Dart data classes (`Business`, `Customer`, `LoyaltyTransaction`, `PendingBusiness`,
-  `AdminBusinessSummary`) with manual `fromMap` — no codegen. `PaymentOrder` was deleted along with Razorpay.
+  `AdminBusinessSummary`, `StaffMember`, `StaffPermissions`) with manual `fromMap` — no codegen. `PaymentOrder` was deleted along with Razorpay.
 - `data/` — repositories wrapping Firestore reads and Cloud Functions callable calls: `AuthRepository`
   (business-id/email/Google login, `beginSession`/`currentSessionId` for the device-session-cap feature),
   `BusinessRepository`, `LedgerRepository`, `SignupRepository` (self-signup email + Google),
@@ -81,7 +81,7 @@ details not otherwise specified:
   pricing), `signup` (self-signup form + Google button + the `/pending` approval-wait screen), `auth` (login +
   forgot password + Google sign-in), `subscription` (the `/subscription-lapsed` blocking screen), `operator`
   (the hidden `/hd-ops` console), `shell` (responsive app shell + dashboard — sidebar on wide viewports,
-  bottom tab bar on narrow, breakpoint `AppSpacing.wideBreakpoint`), `earn` (now requires a bill number),
+  bottom tab bar on narrow, breakpoint `AppSpacing.wideBreakpoint`), `earn` (bill number required only when `billNumberRequired`; optional manual points override),
   `redeem` (includes the OTP subflow), `correction`, `customers` (customer list w/ sort + CSV/PDF export +
   birthday screen), `settings`.
 - `app/router.dart` — go_router routes. Pre-auth: `/`, `/login`, `/signup`. Post-signup-pre-approval:
@@ -111,6 +111,32 @@ own Firestore write echoes back through that same `currentBusinessProvider` stre
 without the debounce a device could see that echo before its own local state finished updating, self-evicting
 on login. If you touch this code, keep the debounce (or replace it with something that's provably not racy).
 
+#### Roles: owner vs staff (`functions/src/staff.ts`, `lib/authContext.ts`, `app_shell.dart`)
+
+Each business has one **owner** (the account created at signup/provisioning) and zero or more **staff**.
+
+- **Staff are created by the HyperDynamics operator** in `/hd-ops` (`adminCreateStaff`/`adminListStaff`/
+  `adminRemoveStaff`), *not* by the business — seats are the commercial lever, so self-serve creation would
+  give away the thing being sold. What the owner *does* control is what staff may do.
+- **Staff sign in with Google only.** `adminCreateStaff` rejects non-gmail addresses and pre-creates the Auth
+  user (no password) so the `businessId`/`role` claims exist before their first sign-in; Firebase then links
+  the Google credential to that same uid because the project uses the default *one account per email address*
+  setting. **If that setting were ever flipped**, Google sign-in would mint a second uid with no claims and
+  staff login would silently break. Note Google sign-in is still gated on Pending item #1 below — staff login
+  cannot work at all until the real Web Client ID is in place.
+- **Permissions are one policy per business**, not per staff member: `businesses/{id}.staffPermissions`,
+  owner-edited in Settings. Enforced in three places — the nav hides items (`_visibleNavItems`), the router
+  redirects direct URLs (`_staffMayVisit`), and **the callables re-check server-side**
+  (`assertStaffPermission`/`requirePermission`), which is the only one of the three that is actually a
+  security boundary. `settings` is deliberately not a permission: staff who could edit settings could grant
+  themselves everything else.
+- An **absent `role` claim means owner**, everywhere (client and server). Every account provisioned before
+  this shipped has no `role`, so defaulting the other way would lock every live business out of its own
+  settings.
+- **The device cap is now per user account**, not per business (`trimSessionsToCap` groups by `uid`). With a
+  shared business-wide cap, three staff on a default cap of 1 would have signed each other out continuously.
+  The original anti-sharing intent still holds — it's enforced within each account.
+
 ### Firebase backend
 
 **Why Cloud Functions own all balance-mutating writes**: Earn/Redeem/Correction change a customer's point
@@ -121,7 +147,8 @@ choice) are simple enough to be direct, rule-guarded client writes (field allow-
 everything else on the `businesses/{id}` doc (status, feature flags, subscription date, session list) is
 Cloud-Functions-only.
 
-Cloud Functions (`functions/src/`, 17 deployed, exported from `index.ts`):
+Cloud Functions (`functions/src/`, 20 defined in `index.ts` — 17 deployed, the 3 `adminCreateStaff`/
+`adminListStaff`/`adminRemoveStaff` staff callables are **not deployed yet**):
 - Login is by "business id", not email; Firebase Auth only speaks email/password. Provisioning mints each
   business a synthetic login email `{businessId}@<LOGIN_EMAIL_DOMAIN>`. There's deliberately **no Cloud
   Function to resolve it** — `lib/data/auth_repository.dart` computes the same email client-side (it's a
@@ -163,6 +190,9 @@ Cloud Functions (`functions/src/`, 17 deployed, exported from `index.ts`):
   distinct IP (see `getCallerIp` below), so the operator can judge for themselves whether a business looks like
   it's running several physical branches off one ₹7,999 account, and start a pricing conversation — never an
   automated block. Only transactions posted since IP-capture shipped have anything to analyze.
+- `staff.ts` — `adminCreateStaff` / `adminListStaff` / `adminRemoveStaff`, the operator-only staff seat
+  management described under "Roles" above. Removal strips the `businessId`/`role` claims, revokes refresh
+  tokens, and drops that uid's device sessions.
 - `earn.ts`, `otp.ts`, `redeem.ts`, `correction.ts` — the ledger operations, each a Firestore transaction.
   `earn.ts`/`redeem.ts` both call `requireActiveSession` and record `ip: getCallerIp(request)` (best-effort,
   `authContext.ts` — never blocks the transaction if absent) on the transaction doc. `earn.ts` also takes a
@@ -215,13 +245,52 @@ error. If you change which fields the aggregate sums, the index must change with
 - `source`: `'admin'` | `'selfSignup'`, `ownerEmail`, `ownerPhone` — audit-only, set once at provisioning.
 - `subscriptionRenewsAt`: Timestamp, null until approval — the ₹999/year clock.
 - `birthdayEnabled` / `whatsappEnabled` / `exportEnabled`: bool, default false — paid add-ons.
-- `maxConcurrentSessions`: number, default 1 (when absent) — see the session-cap feature above.
-- `activeSessions`: `Array<{sessionId, deviceLabel, createdAtMs}>` — current session occupants.
+- `maxConcurrentSessions`: number, default 1 (when absent) — see the session-cap feature above. Now applies
+  **per user account**, not per business (see the roles section below).
+- `activeSessions`: `Array<{sessionId, deviceLabel, createdAtMs, uid}>` — current session occupants. `uid` is
+  absent on entries written before staff roles shipped; those are ignored for capping and age out after 30 days.
+- `salesDashboardEnabled`: bool, default **true** when absent — operator-controlled. Defaults true unlike the
+  paid add-ons because the sales card predates the switch; an absent field must not silently remove a feature
+  a live business already has.
 
-`transactions/{txnId}` also carries `billNumber` (earn, required), `ip` (earn/redeem, best-effort). `customers/
-{phone}` also carries `dob`/`birthdayMonthDay` (optional, set at earn time).
+Owner-writable in Settings (in `firestore.rules`' client allow-list, and **owner-only** — staff are blocked by
+`isOwner()` there):
+- `billNumberRequired`: bool, default true — whether Earn demands a bill number.
+- `manualPointsEnabled`: bool, default false — whether Earn offers a points-override field.
+- `birthdayWindowDays`: number 1–10, default 1 — birthdays screen shows today + next N-1 days.
+- `staffPermissions`: `{earn, redeem, correction, customers, birthdays, export, sales}` booleans — one policy
+  for all staff on the business. Defaults: earn/redeem/correction true, the rest false. Deliberately has no
+  `settings` key: staff who could edit settings could grant themselves every other permission.
 
-## Current status (as of 2026-08-11)
+`transactions/{txnId}` also carries `billNumber` (earn; required only when `billNumberRequired`), `ip`
+(earn/redeem, best-effort), `createdByName`/`createdByRole` (who posted it — stamped server-side by
+`getActorLabel` so rows can name the person without a user lookup; absent on pre-roles transactions, render
+those with no attribution rather than guessing), `manualPoints` (bool, earn), and `reversedByName` (corrections).
+`customers/{phone}` also carries `dob`/`birthdayMonthDay` (optional, set at earn time).
+
+`businesses/{id}/staff/{uid}` — one doc per staff account (`email`, `displayName`, `createdAt`, `createdBy`).
+Client-readable, Cloud-Functions-only writes.
+
+## Current status (as of 2026-08-15)
+
+### Built but NOT deployed — do this first
+
+Roles/staff, the settings switches, the birthday window and the sales-card flag are all **written, analyzing
+clean, tested and building, but not shipped**. Nothing in this group is live yet:
+1. `firebase deploy --only functions` — 3 new callables (`adminCreateStaff`/`adminListStaff`/
+   `adminRemoveStaff`) plus changes to `earnCredit`/`redeemPoints`/`reverseTransaction`/
+   `adminUpdateBusinessFeatures`/`beginSession`.
+2. `firebase deploy --only firestore:rules` — **required**, and required *with* the functions deploy: the
+   rules add `isOwner()` and widen the client-writable allow-list to the four new Settings fields. Without it
+   every new Settings toggle fails with a permission error.
+3. Frontend to both hosting targets (`flutter build web --release`, then Firebase Hosting and the Hostinger
+   zip + hPanel flow).
+
+Deploy order matters slightly: rules and functions before the frontend, so the new UI never writes fields the
+backend still rejects. Existing behaviour is unaffected until then — every new field defaults to its
+pre-existing behaviour when absent.
+
+## Previous status (as of 2026-08-11)
 
 Verified: `flutter analyze` clean, `flutter test` passing (bar the known day-boundary-flaky test noted above),
 `flutter build web --release` succeeds. Deployed and smoke-tested **live** (not simulated) via a scripted

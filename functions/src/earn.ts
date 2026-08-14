@@ -1,7 +1,7 @@
 import { onCall, HttpsError } from "firebase-functions/https";
 import { FieldValue } from "firebase-admin/firestore";
 import { db, businessRef, customersCol, transactionsCol } from "./lib/admin";
-import { requireBusinessId, getCallerIp } from "./lib/authContext";
+import { requireBusinessId, getCallerIp, getActorLabel, getRole, assertStaffPermission } from "./lib/authContext";
 import { requireActiveSession } from "./sessions";
 import { digitsOnly, pointsForAmount } from "./lib/format";
 
@@ -14,10 +14,10 @@ export const earnCredit = onCall(async (request) => {
   const name = String(request.data?.name ?? "").trim().slice(0, 60);
   const billNumber = String(request.data?.billNumber ?? "").trim().slice(0, 40);
   const dobRaw = request.data?.dob !== undefined && request.data?.dob !== null ? String(request.data.dob).trim() : "";
+  const manualPointsRaw = request.data?.manualPoints;
 
   if (phone.length !== 10) throw new HttpsError("invalid-argument", "enter a valid 10-digit phone number.");
   if (!Number.isFinite(amount) || amount <= 0) throw new HttpsError("invalid-argument", "enter a valid bill amount.");
-  if (!billNumber) throw new HttpsError("invalid-argument", "enter the bill number.");
   if (dobRaw && !/^\d{4}-\d{2}-\d{2}$/.test(dobRaw)) {
     throw new HttpsError("invalid-argument", "enter a valid date of birth.");
   }
@@ -28,8 +28,30 @@ export const earnCredit = onCall(async (request) => {
 
   const bizSnap = await businessRef(businessId).get();
   if (!bizSnap.exists) throw new HttpsError("not-found", "business not found.");
+  assertStaffPermission(request, "earn", bizSnap.get("staffPermissions"));
+
+  // Both of these are owner-configured in Settings, and both are re-checked here
+  // rather than trusted from the client: the earn form hides the manual-points
+  // field when it's off, but hiding an input is not a constraint.
+  const billNumberRequired = (bizSnap.get("billNumberRequired") as boolean | undefined) ?? true;
+  if (billNumberRequired && !billNumber) throw new HttpsError("invalid-argument", "enter the bill number.");
+
+  const manualPointsEnabled = (bizSnap.get("manualPointsEnabled") as boolean | undefined) ?? false;
   const ratio = (bizSnap.get("pointsRatio") as number | undefined) ?? 10;
-  const points = pointsForAmount(amount, ratio);
+
+  let points = pointsForAmount(amount, ratio);
+  let manualPointsApplied = false;
+  if (manualPointsRaw !== undefined && manualPointsRaw !== null && String(manualPointsRaw).trim() !== "") {
+    if (!manualPointsEnabled) {
+      throw new HttpsError("failed-precondition", "manual points are not enabled for this business.");
+    }
+    const manual = Number(manualPointsRaw);
+    if (!Number.isInteger(manual) || manual < 0) {
+      throw new HttpsError("invalid-argument", "enter a whole number of points.");
+    }
+    points = manual;
+    manualPointsApplied = true;
+  }
 
   const custRef = customersCol(businessId).doc(phone);
   const txnRef = transactionsCol(businessId).doc();
@@ -66,8 +88,11 @@ export const earnCredit = onCall(async (request) => {
       billNumber,
       status: "ok",
       otpOverride: false,
+      manualPoints: manualPointsApplied,
       createdAt: FieldValue.serverTimestamp(),
       createdBy: request.auth!.uid,
+      createdByName: getActorLabel(request),
+      createdByRole: getRole(request),
       ip: getCallerIp(request),
     });
 

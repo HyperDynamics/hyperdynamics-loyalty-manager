@@ -11,6 +11,7 @@ class AdminBusinessSummary {
     required this.birthdayEnabled,
     required this.whatsappEnabled,
     required this.exportEnabled,
+    this.salesDashboardEnabled = true,
     this.subscriptionRenewsAt,
     this.maxConcurrentSessions = 1,
     this.activeSessionCount = 0,
@@ -24,9 +25,15 @@ class AdminBusinessSummary {
   final bool whatsappEnabled;
   final bool exportEnabled;
 
-  /// How many devices may be signed in to this business's shared login at
-  /// once, and how many currently are — see `beginSession`/
-  /// `requireActiveSession` in the backend.
+  /// Unlike the paid add-ons above this defaults to true — the sales card
+  /// predates the switch, so an absent field must keep it visible rather than
+  /// silently removing a feature every live business already has.
+  final bool salesDashboardEnabled;
+
+  /// How many devices each account on this business may be signed in on at
+  /// once (the cap is per user account, so staff don't evict each other), and
+  /// how many device sessions are currently registered across all of them —
+  /// see `beginSession`/`requireActiveSession` in the backend.
   final int maxConcurrentSessions;
   final int activeSessionCount;
 
@@ -44,6 +51,7 @@ class AdminBusinessSummary {
         birthdayEnabled: (map['birthdayEnabled'] as bool?) ?? false,
         whatsappEnabled: (map['whatsappEnabled'] as bool?) ?? false,
         exportEnabled: (map['exportEnabled'] as bool?) ?? false,
+        salesDashboardEnabled: (map['salesDashboardEnabled'] as bool?) ?? true,
         subscriptionRenewsAt: map['subscriptionRenewsAt'] != null ? DateTime.parse(map['subscriptionRenewsAt'] as String) : null,
         maxConcurrentSessions: (map['maxConcurrentSessions'] as num?)?.toInt() ?? 1,
         activeSessionCount: (map['activeSessionCount'] as num?)?.toInt() ?? 0,

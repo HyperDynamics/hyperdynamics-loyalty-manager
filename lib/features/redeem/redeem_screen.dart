@@ -14,6 +14,7 @@ import '../../widgets/app_card.dart';
 import '../../widgets/app_input.dart';
 import '../../widgets/coin.dart';
 import '../../widgets/txn_list_row.dart';
+import '../../widgets/actor_chip.dart';
 
 /// F. Redeem Screen — customer lookup, balance, optional OTP verification,
 /// redemption.
@@ -124,7 +125,14 @@ class _RedeemScreenState extends ConsumerState<RedeemScreen> {
       children: [
         Text('redeem', style: AppTypography.overline),
         const SizedBox(height: 6),
-        Text('redeem points', style: AppTypography.h1),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: Text('redeem points', style: AppTypography.h1)),
+            const SizedBox(width: 12),
+            const ActorChip(),
+          ],
+        ),
         const SizedBox(height: 24),
         AppCard(
           padding: 24,

@@ -4,6 +4,7 @@ import '../models/customer.dart';
 import '../models/loyalty_transaction.dart';
 import '../models/sales_summary.dart';
 import 'auth_providers.dart';
+import 'business_providers.dart';
 import 'repository_providers.dart';
 
 String? _businessId(Ref ref) => ref.watch(authSessionProvider).value?.businessId;
@@ -26,10 +27,14 @@ final customersListProvider = StreamProvider.family<List<Customer>, bool>((ref, 
   return ref.watch(ledgerRepositoryProvider).watchCustomers(businessId, descending: descending);
 });
 
-final todaysBirthdaysProvider = StreamProvider<List<Customer>>((ref) {
+/// Birthdays inside the business's configured window (today + next N-1 days,
+/// owner-set in Settings). Watches `currentBusinessProvider` so changing the
+/// window in Settings re-runs the query immediately.
+final upcomingBirthdaysProvider = StreamProvider<List<Customer>>((ref) {
   final businessId = _businessId(ref);
   if (businessId == null) return Stream.value(const []);
-  return ref.watch(ledgerRepositoryProvider).watchTodaysBirthdays(businessId);
+  final windowDays = ref.watch(currentBusinessProvider).value?.birthdayWindowDays ?? 1;
+  return ref.watch(ledgerRepositoryProvider).watchUpcomingBirthdays(businessId, windowDays: windowDays);
 });
 
 typedef DateRange = ({DateTime start, DateTime end});

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/business.dart';
+import '../../providers/auth_providers.dart';
 import '../../providers/business_providers.dart';
 import '../../providers/feedback_providers.dart';
 import '../../providers/repository_providers.dart';
@@ -13,7 +14,7 @@ import '../../widgets/confirm_dialog.dart';
 import '../../widgets/coin.dart';
 
 class _NavItem {
-  const _NavItem(this.location, this.icon, this.label, this.tabLabel, {this.isEnabled});
+  const _NavItem(this.location, this.icon, this.label, this.tabLabel, {this.isEnabled, this.staffPermission});
   final String location;
   final IconData icon;
   final String label;
@@ -23,19 +24,45 @@ class _NavItem {
   /// that are only available once admin turns them on for this business —
   /// the item still renders (as the upsell surface) but is disabled.
   final bool Function(Business? business)? isEnabled;
+
+  /// Which staff permission this screen needs, or null for owner-only screens
+  /// (settings). Unlike [isEnabled], failing this **hides** the item rather
+  /// than disabling it: an add-on the business hasn't bought is an upsell worth
+  /// showing, but a permission their owner withheld is not something staff
+  /// should be invited to ask about.
+  final bool Function(StaffPermissions permissions)? staffPermission;
 }
 
 const _navItems = [
-  _NavItem('/app/dashboard', Icons.home_rounded, 'home', 'home'),
-  _NavItem('/app/earn', Icons.add_circle_outline_rounded, 'earn', 'earn'),
-  _NavItem('/app/redeem', Icons.star_outline_rounded, 'redeem', 'redeem'),
-  _NavItem('/app/customers', Icons.groups_outlined, 'customers', 'customers'),
-  _NavItem('/app/birthdays', Icons.cake_outlined, 'birthdays', 'birthdays', isEnabled: _birthdaysEnabled),
-  _NavItem('/app/correction', Icons.history_rounded, 'history & correction', 'fix'),
+  _NavItem('/app/dashboard', Icons.home_rounded, 'home', 'home', staffPermission: _always),
+  _NavItem('/app/earn', Icons.add_circle_outline_rounded, 'earn', 'earn', staffPermission: _canEarn),
+  _NavItem('/app/redeem', Icons.star_outline_rounded, 'redeem', 'redeem', staffPermission: _canRedeem),
+  _NavItem('/app/customers', Icons.groups_outlined, 'customers', 'customers', staffPermission: _canCustomers),
+  _NavItem('/app/birthdays', Icons.cake_outlined, 'birthdays', 'birthdays',
+      isEnabled: _birthdaysEnabled, staffPermission: _canBirthdays),
+  _NavItem('/app/correction', Icons.history_rounded, 'history & correction', 'fix', staffPermission: _canCorrect),
+  // No staffPermission ⇒ owner-only.
   _NavItem('/app/settings', Icons.settings_outlined, 'settings', 'settings'),
 ];
 
 bool _birthdaysEnabled(Business? business) => business?.birthdayEnabled ?? false;
+
+bool _always(StaffPermissions p) => true;
+bool _canEarn(StaffPermissions p) => p.earn;
+bool _canRedeem(StaffPermissions p) => p.redeem;
+bool _canCustomers(StaffPermissions p) => p.customers;
+bool _canBirthdays(StaffPermissions p) => p.birthdays;
+bool _canCorrect(StaffPermissions p) => p.correction;
+
+/// The nav items this account may see. Owners see everything; staff see only
+/// what their business's single staff policy allows. Mirrored by the router's
+/// redirect (`router.dart`) so a typed-in URL can't bypass it, and by the
+/// callables themselves, which are the actual security boundary.
+List<_NavItem> _visibleNavItems(Business? business, bool isOwner) {
+  if (isOwner) return _navItems;
+  final permissions = business?.staffPermissions ?? StaffPermissions.defaults;
+  return _navItems.where((i) => i.staffPermission?.call(permissions) ?? false).toList();
+}
 
 /// D. App shell — sidebar nav on wide/desktop viewports, bottom tab bar on
 /// narrow/mobile, exactly mirroring the prototype's `showSidebar`/`showTabbar`
@@ -71,6 +98,8 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= AppSpacing.wideBreakpoint;
     final business = ref.watch(currentBusinessProvider).value;
+    final isOwner = ref.watch(authSessionProvider).value?.isOwner ?? true;
+    final items = _visibleNavItems(business, isOwner);
     void onItemTap(_NavItem item) => _onNavItemTap(context, ref, item, business);
 
     final main = Container(
@@ -96,6 +125,7 @@ class AppShell extends ConsumerWidget {
             _Sidebar(
               location: location,
               business: business,
+              items: items,
               businessName: business?.displayName ?? '',
               logoUrl: business?.logoUrl,
               onLogout: () => _logout(context, ref),
@@ -110,7 +140,7 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bgApp,
       body: SingleChildScrollView(child: main),
-      bottomNavigationBar: _TabBar(location: location, business: business, onItemTap: onItemTap),
+      bottomNavigationBar: _TabBar(location: location, business: business, items: items, onItemTap: onItemTap),
     );
   }
 }
@@ -119,6 +149,7 @@ class _Sidebar extends StatelessWidget {
   const _Sidebar({
     required this.location,
     required this.business,
+    required this.items,
     required this.businessName,
     this.logoUrl,
     required this.onLogout,
@@ -126,6 +157,7 @@ class _Sidebar extends StatelessWidget {
   });
   final String location;
   final Business? business;
+  final List<_NavItem> items;
   final String businessName;
   final String? logoUrl;
   final VoidCallback onLogout;
@@ -163,7 +195,7 @@ class _Sidebar extends StatelessWidget {
               ],
             ),
           ),
-          for (final item in _navItems)
+          for (final item in items)
             _SidebarButton(
               item: item,
               active: location == item.location,
@@ -250,9 +282,10 @@ class _SidebarButton extends StatelessWidget {
 }
 
 class _TabBar extends StatelessWidget {
-  const _TabBar({required this.location, required this.business, required this.onItemTap});
+  const _TabBar({required this.location, required this.business, required this.items, required this.onItemTap});
   final String location;
   final Business? business;
+  final List<_NavItem> items;
   final ValueChanged<_NavItem> onItemTap;
 
   @override
@@ -267,7 +300,7 @@ class _TabBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           child: Row(
             children: [
-              for (final item in _navItems)
+              for (final item in items)
                 Builder(builder: (context) {
                   final enabled = item.isEnabled?.call(business) ?? true;
                   final color = !enabled

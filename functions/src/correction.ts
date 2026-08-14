@@ -1,7 +1,7 @@
 import { onCall, HttpsError } from "firebase-functions/https";
 import { FieldValue } from "firebase-admin/firestore";
 import { db, customersCol, transactionsCol } from "./lib/admin";
-import { requireBusinessId } from "./lib/authContext";
+import { requireBusinessId, requirePermission, getActorLabel } from "./lib/authContext";
 import { requireActiveSession } from "./sessions";
 
 /**
@@ -13,6 +13,7 @@ import { requireActiveSession } from "./sessions";
 export const reverseTransaction = onCall(async (request) => {
   const businessId = requireBusinessId(request);
   await requireActiveSession(request);
+  await requirePermission(request, "correction");
   const txnId = String(request.data?.txnId ?? "");
   if (!txnId) throw new HttpsError("invalid-argument", "txnId is required.");
 
@@ -48,6 +49,7 @@ export const reverseTransaction = onCall(async (request) => {
       status: "reversed",
       reversedAt: FieldValue.serverTimestamp(),
       reversedBy: request.auth!.uid,
+      reversedByName: getActorLabel(request),
     });
   });
 

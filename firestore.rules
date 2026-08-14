@@ -11,17 +11,34 @@ service cloud.firestore {
       return signedIn() && request.auth.token.businessId == businessId;
     }
 
+    // Staff accounts belong to a business but must never edit its configuration —
+    // `staffPermissions` is in the writable allow-list below, so a staff member
+    // who could write it could grant themselves every other permission. Accounts
+    // predating staff roles have no `role` claim at all and are owners.
+    function isOwner(businessId) {
+      return ownsBusiness(businessId) && request.auth.token.get('role', 'owner') == 'owner';
+    }
+
     match /businesses/{businessId} {
       allow read: if ownsBusiness(businessId);
 
       // Business profile is simple enough for a direct client write, but
       // locked to an explicit field allow-list — everything else
-      // (points balances, transactions, OTPs) is Cloud-Functions-only.
-      allow update: if ownsBusiness(businessId) &&
+      // (status, feature flags, subscription, sessions) is Cloud-Functions-only.
+      allow update: if isOwner(businessId) &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['displayName', 'logoUrl', 'pointsRatio', 'otpEnabled', 'gateway']);
+          .hasOnly(['displayName', 'logoUrl', 'pointsRatio', 'otpEnabled', 'gateway',
+                    'billNumberRequired', 'manualPointsEnabled', 'birthdayWindowDays',
+                    'staffPermissions']);
 
       allow create, delete: if false;
+
+      // Readable so the app can show the business its own staff list; writes are
+      // operator-only (see functions/src/staff.ts — seats are the commercial lever).
+      match /staff/{staffUid} {
+        allow read: if ownsBusiness(businessId);
+        allow write: if false;
+      }
 
       match /private/{document=**} {
         allow read, write: if false;

@@ -123,6 +123,10 @@ export const adminListBusinesses = onCall(async (request) => {
     birthdayEnabled: (d.get("birthdayEnabled") as boolean) ?? false,
     whatsappEnabled: (d.get("whatsappEnabled") as boolean) ?? false,
     exportEnabled: (d.get("exportEnabled") as boolean) ?? false,
+    // Defaults true, unlike the paid add-ons above: the sales card predates this
+    // switch, so an absent field must keep it visible rather than silently
+    // removing a feature every live business already has.
+    salesDashboardEnabled: (d.get("salesDashboardEnabled") as boolean | undefined) ?? true,
     subscriptionRenewsAt: (d.get("subscriptionRenewsAt")?.toDate?.() as Date | undefined)?.toISOString() ?? null,
     maxConcurrentSessions: (d.get("maxConcurrentSessions") as number) ?? 1,
     activeSessionCount: ((d.get("activeSessions") as unknown[]) ?? []).length,
@@ -151,7 +155,7 @@ export const adminUpdateBusinessFeatures = onCall(async (request) => {
   if (!businessId) throw new HttpsError("invalid-argument", "missing businessId.");
 
   const patch: Record<string, boolean | number | ActiveSession[]> = {};
-  for (const key of ["birthdayEnabled", "whatsappEnabled", "exportEnabled"] as const) {
+  for (const key of ["birthdayEnabled", "whatsappEnabled", "exportEnabled", "salesDashboardEnabled"] as const) {
     if (typeof request.data?.[key] === "boolean") patch[key] = request.data[key];
   }
   if (typeof request.data?.maxConcurrentSessions === "number") {

@@ -255,8 +255,17 @@ class _DetailPanel extends StatelessWidget {
         row('phone', maskPhone(txn.phone)),
         row(isEarn ? 'bill amount' : 'redeemed', isEarn ? formatInr(txn.amount ?? 0) : '${txn.points} pts'),
         if (isEarn) row('bill number', txn.billNumber?.isNotEmpty == true ? txn.billNumber! : '—'),
-        row('points', '${isEarn ? '+' : '−'}${txn.points}', color: isEarn ? AppColors.gain : AppColors.loss),
+        row(
+          'points',
+          '${isEarn ? '+' : '−'}${txn.points}${txn.manualPoints ? ' (manual)' : ''}',
+          color: isEarn ? AppColors.gain : AppColors.loss,
+        ),
         row('timestamp', relativeTimeLabel(txn.createdAt)),
+        // Absent on anything posted before staff roles shipped — omit the line
+        // entirely rather than showing "—", which would imply nobody posted it.
+        if (txn.createdByName != null)
+          row('posted by', '${txn.createdByName}${txn.isStaffEntry ? ' (staff)' : ''}'),
+        if (reversed && txn.reversedByName != null) row('reversed by', txn.reversedByName!),
         row('txn id', txn.id),
         const SizedBox(height: 12),
         const Divider(color: AppColors.borderSubtle, height: 1),
