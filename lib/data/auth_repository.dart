@@ -24,13 +24,14 @@ const _invalidCredentialsMessage = 'invalid business id or password. please chec
 /// email.
 const loginEmailDomain = 'login.hyperdynamics.app';
 
-/// Web OAuth client ID for Google sign-in — Firebase Console → Authentication
-/// → Sign-in method → Google → Enable auto-creates this. **Placeholder until
-/// that manual step is done** (same treatment as the Razorpay/MSG91
-/// placeholders in `functions/src/config.ts`) — google sign-in won't work
-/// end-to-end until this is replaced with the real value. Web-only for now;
-/// see CLAUDE.md's existing notes on Android/iOS being unverified.
-const googleWebClientId = 'REPLACE-WITH-FIREBASE-GOOGLE-WEB-CLIENT-ID.apps.googleusercontent.com';
+/// Web OAuth client ID for Google sign-in, auto-created by Firebase Console →
+/// Authentication → Sign-in method → Google → Enable. Safe to commit: an OAuth
+/// *client id* is public by design (it ships in every web client that uses it);
+/// the paired client **secret** is not, and must never be copied into this repo,
+/// which is public on GitHub. Retrieve either from
+/// `identitytoolkit.googleapis.com/admin/v2/projects/<project>/defaultSupportedIdpConfigs`.
+/// Web-only for now; see CLAUDE.md's notes on Android/iOS being unverified.
+const googleWebClientId = '80499955330-p7d3i0lj597cnmiusso73blugdasf0ft.apps.googleusercontent.com';
 
 /// Login here is by "business id", not email. Firebase Auth only speaks
 /// email/password, so every business is provisioned (server-side, at
@@ -173,10 +174,11 @@ class AuthRepository {
     return sessionId;
   }
 
-  /// Deferred until first use rather than at app startup: `googleWebClientId`
-  /// is a placeholder until the Google sign-in provider is enabled in the
-  /// Firebase Console, and `initialize()` throws on an invalid client id —
-  /// doing this in `main()` before `runApp` used to blank the entire app.
+  /// Deferred until first use rather than at app startup: `initialize()` throws
+  /// on an invalid client id, and doing this in `main()` before `runApp` used to
+  /// blank the entire app back when the id was still a placeholder. Kept lazy —
+  /// there's no reason to pay for the Google SDK handshake on every cold start
+  /// when most sessions are business-id/password logins.
   static Future<void>? _googleInitFuture;
 
   Future<void> _ensureGoogleSignInInitialized() {

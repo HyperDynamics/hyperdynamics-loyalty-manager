@@ -122,8 +122,7 @@ Each business has one **owner** (the account created at signup/provisioning) and
   user (no password) so the `businessId`/`role` claims exist before their first sign-in; Firebase then links
   the Google credential to that same uid because the project uses the default *one account per email address*
   setting. **If that setting were ever flipped**, Google sign-in would mint a second uid with no claims and
-  staff login would silently break. Note Google sign-in is still gated on Pending item #1 below — staff login
-  cannot work at all until the real Web Client ID is in place.
+  staff login would silently break.
 - **Permissions are one policy per business**, not per staff member: `businesses/{id}.staffPermissions`,
   owner-edited in Settings. Enforced in three places — the nav hides items (`_visibleNavItems`), the router
   redirects direct URLs (`_staffMayVisit`), and **the callables re-check server-side**
@@ -311,8 +310,16 @@ building") until `state: READY`; that intermediate error is expected, not a misc
   `.firebaserc`). `lib/firebase_options.dart`, `android/app/google-services.json`,
   `ios/Runner/GoogleService-Info.plist` are all real, flutterfire-generated config.
 - **Firestore** (region `asia-south1`) — database, `firestore.rules`, `firestore.indexes.json` all deployed.
-- **Authentication** — Email/Password enabled, Google sign-in wired client-side but **not yet enabled in the
-  Firebase Console** (see Pending). **Demo login: business id `demo`, password `demo1234`** — has real,
+- **Authentication** — Email/Password enabled. **Google sign-in is enabled** (2026-08-15); the real Web
+  Client ID is in `lib/data/auth_repository.dart`'s `googleWebClientId`. An OAuth client *id* is public by
+  design and safe to commit — the paired **client secret is not**, and must never land in this repo (it's
+  public on GitHub). Read either back with
+  `GET identitytoolkit.googleapis.com/admin/v2/projects/hyperdynamics-loyalty/defaultSupportedIdpConfigs`.
+  **Authorized domains** matter as much as the client id: Google sign-in fails with `auth/unauthorized-domain`
+  on any origin not listed. Currently `localhost`, `hyperdynamics-loyalty.firebaseapp.com`,
+  `hyperdynamics-loyalty.web.app` and `hyperpoints.hyperdynamics.in` (production, added 2026-08-15). The
+  GitHub Pages mirror is deliberately **not** listed — add it via `PATCH .../config?updateMask=authorizedDomains`
+  if Google sign-in is ever needed there. **Demo login: business id `demo`, password `demo1234`** — has real,
   accumulated demo transaction history (not just one seeded row anymore).
 - **Operator console** — `hyperdynamics08@gmail.com` already has the `admin` custom claim (granted via
   `bootstrapAdmin`). Log in at `/hd-ops/login` on either deployed site with that real email. To grant admin to
@@ -364,19 +371,12 @@ building") until `state: READY`; that intermediate error is expected, not a misc
 
 ### Pending — ordered by what unblocks the most
 
-1. **Google Sign-In real Web Client ID.** `lib/data/auth_repository.dart`'s `googleWebClientId` constant is
-   still a placeholder. Someone needs to enable Google as a sign-in provider in Firebase Console →
-   Authentication → Sign-in method (manual, can't be scripted), which auto-generates the real Web Client ID —
-   substitute it in. Until then, both Google sign-up and Google sign-in fail gracefully (a clean "not available
-   yet, use business id and password" error, not a crash — this used to actually blank the entire app because
-   `main.dart` initialized `GoogleSignIn` eagerly before `runApp`; that's fixed, initialization is now lazy and
-   only happens on first tap of a Google button).
-2. **Real MSG91 account.** `MSG91_MANAGED_AUTH_KEY` is a placeholder — needed for the "managed by us" OTP
+1. **Real MSG91 account.** `MSG91_MANAGED_AUTH_KEY` is a placeholder — needed for the "managed by us" OTP
    gateway option to send real SMS. (BYO gateway businesses supply their own key via Settings regardless.)
-3. **No local emulator wiring.** `main.dart` always talks to production Firebase; there's no debug-flag path
+2. **No local emulator wiring.** `main.dart` always talks to production Firebase; there's no debug-flag path
    to point the app at `firebase emulators:start` for local dev without touching real data. (User's stated
    preference is a separate staging Firebase project over emulator wiring — revisit before building this.)
-4. **Android untested end-to-end.** Blocked locally only by unaccepted SDK licenses
+3. **Android untested end-to-end.** Blocked locally only by unaccepted SDK licenses
    (`flutter doctor --android-licenses`, an interactive step) — not a code issue, but it means the Android
    build has only been analyzed/compiled, never actually run on a device/emulator (unlike web and iOS, both
    verified running).
