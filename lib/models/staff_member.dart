@@ -1,6 +1,9 @@
-/// One staff account on a business. Created only by the HyperDynamics operator
-/// in `/hd-ops` (see `functions/src/staff.ts`) — businesses can't self-serve
-/// seats — and signs in with Google only, hence the mandatory gmail address.
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+/// One staff account on a business. Self-serve, added and removed by the
+/// business owner in Settings (see `functions/src/staff.ts`'s `ownerCreateStaff`/
+/// `ownerRemoveStaff`) — capped at `Business.maxStaffSeats`. Signs in with
+/// Google only, hence the mandatory gmail address.
 class StaffMember {
   const StaffMember({
     required this.uid,
@@ -14,10 +17,12 @@ class StaffMember {
   final String displayName;
   final DateTime? createdAt;
 
-  /// What to show in a list row: the operator-entered name if there is one,
-  /// otherwise the local part of the gmail address.
+  /// What to show in a list row: the entered name if there is one, otherwise
+  /// the local part of the gmail address.
   String get label => displayName.trim().isNotEmpty ? displayName.trim() : email.split('@').first;
 
+  /// From the operator console's `adminListStaff` callable, which returns
+  /// `createdAtMs` (plain JSON has no Timestamp type).
   factory StaffMember.fromMap(Map<String, dynamic> map) => StaffMember(
         uid: (map['uid'] as String?) ?? '',
         email: (map['email'] as String?) ?? '',
@@ -25,5 +30,15 @@ class StaffMember {
         createdAt: (map['createdAtMs'] as num?) != null
             ? DateTime.fromMillisecondsSinceEpoch((map['createdAtMs'] as num).toInt())
             : null,
+      );
+
+  /// From the owner's direct Firestore stream of `businesses/{id}/staff` — the
+  /// business's own subcollection, client-readable per firestore.rules — where
+  /// `createdAt` is a native `Timestamp`, not millis.
+  factory StaffMember.fromDoc(String uid, Map<String, dynamic> data) => StaffMember(
+        uid: uid,
+        email: (data['email'] as String?) ?? '',
+        displayName: (data['displayName'] as String?) ?? '',
+        createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       );
 }

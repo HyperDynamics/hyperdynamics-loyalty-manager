@@ -97,6 +97,7 @@ class Business {
     this.birthdayWindowDays = 1,
     this.salesDashboardEnabled = true,
     this.staffPermissions = StaffPermissions.defaults,
+    this.maxStaffSeats = 3,
   });
 
   final String id;
@@ -141,6 +142,11 @@ class Business {
 
   final StaffPermissions staffPermissions;
 
+  /// Operator-controlled (`adminUpdateBusinessFeatures`), not client-writable —
+  /// how many staff accounts this business may have. Default 3, matching what
+  /// a new business gets at provisioning time.
+  final int maxStaffSeats;
+
   bool get subscriptionLapsed => subscriptionRenewsAt != null && subscriptionRenewsAt!.isBefore(DateTime.now());
 
   factory Business.fromMap(String id, Map<String, dynamic> map) => Business(
@@ -167,6 +173,7 @@ class Business {
         birthdayWindowDays: ((map['birthdayWindowDays'] as num?)?.toInt() ?? 1).clamp(1, 10),
         salesDashboardEnabled: (map['salesDashboardEnabled'] as bool?) ?? true,
         staffPermissions: StaffPermissions.fromMap((map['staffPermissions'] as Map?)?.cast<String, dynamic>()),
+        maxStaffSeats: (map['maxStaffSeats'] as num?)?.toInt() ?? 3,
       );
 
   Business copyWith({
@@ -199,6 +206,7 @@ class Business {
         manualPointsEnabled: manualPointsEnabled ?? this.manualPointsEnabled,
         birthdayWindowDays: birthdayWindowDays ?? this.birthdayWindowDays,
         salesDashboardEnabled: salesDashboardEnabled,
+        maxStaffSeats: maxStaffSeats,
         staffPermissions: staffPermissions ?? this.staffPermissions,
       );
 }

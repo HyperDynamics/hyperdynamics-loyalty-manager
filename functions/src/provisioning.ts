@@ -15,6 +15,7 @@ const BUSINESS_SETTINGS_DEFAULTS = {
   birthdayWindowDays: 1,
   salesDashboardEnabled: true,
   staffPermissions: DEFAULT_STAFF_PERMISSIONS,
+  maxStaffSeats: 3,
 };
 
 const PASSWORD_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";

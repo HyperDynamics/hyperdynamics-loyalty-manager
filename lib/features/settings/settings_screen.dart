@@ -17,6 +17,7 @@ import '../../widgets/app_input.dart';
 import '../../widgets/app_segmented_control.dart';
 import '../../widgets/app_toggle.dart';
 import '../../widgets/confirm_dialog.dart';
+import 'staff_roster_card.dart';
 
 /// H. Settings Screen.
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -442,6 +443,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 20),
           ],
 
+          // Who your staff are — add/remove, capped at business.maxStaffSeats.
+          StaffRosterCard(business: business),
+          const SizedBox(height: 20),
+
           // What staff accounts may do — one policy for every staff member on
           // this business. Re-checked server-side on every call.
           AppCard(
@@ -453,7 +458,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text('staff permissions', style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 15)),
                 const SizedBox(height: 4),
                 Text(
-                  'applies to every staff account on this business. staff are added by hyperdynamics — contact us to add or remove one. settings stay owner-only.',
+                  'applies to every staff account on this business. settings stay owner-only.',
                   style: AppTypography.sm.copyWith(height: 1.5),
                 ),
                 const SizedBox(height: 18),

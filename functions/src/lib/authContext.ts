@@ -36,6 +36,22 @@ export function getRole(request: CallableRequest): BusinessRole {
   return request.auth?.token?.role === "staff" ? "staff" : "owner";
 }
 
+/**
+ * Gates the owner-only callables (staff seat management, eventually anything else
+ * that must not be delegable to staff). Distinct from the per-action
+ * `staffPermissions` policy checked in `loadAuthorizedBusiness`/
+ * `assertStaffPermission`: seat management was deliberately never made a
+ * togglable permission — a staff account that could add staff could add itself
+ * unlimited co-workers, which isn't a policy question, it's a hole.
+ */
+export function requireOwner(request: CallableRequest): string {
+  const businessId = requireBusinessId(request);
+  if (getRole(request) === "staff") {
+    throw new HttpsError("permission-denied", "only the business owner can manage staff.");
+  }
+  return businessId;
+}
+
 /** The actions a staff account can be allowed to perform. `settings` is deliberately
  * absent and owner-only: staff editing settings could grant themselves every other
  * permission here, so it is not a toggle. */

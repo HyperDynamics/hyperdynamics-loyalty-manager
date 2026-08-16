@@ -131,6 +131,7 @@ class AdminRepository {
     bool? exportEnabled,
     bool? salesDashboardEnabled,
     int? maxConcurrentSessions,
+    int? maxStaffSeats,
   }) async {
     try {
       await _functions.httpsCallable('adminUpdateBusinessFeatures').call<Map<String, dynamic>>({
@@ -140,15 +141,16 @@ class AdminRepository {
         'exportEnabled': ?exportEnabled,
         'salesDashboardEnabled': ?salesDashboardEnabled,
         'maxConcurrentSessions': ?maxConcurrentSessions,
+        'maxStaffSeats': ?maxStaffSeats,
       });
     } on FirebaseFunctionsException catch (e) {
       throw AdminFailure(e.message ?? 'could not update features. please try again.');
     }
   }
 
-  /// Staff seats are operator-controlled, not self-serve — see
-  /// `functions/src/staff.ts`. Staff sign in with Google only, so [email] must
-  /// be a gmail address; the callable rejects anything else.
+  /// Read-only for the operator — staff are now added/removed by the business
+  /// owner themselves in Settings (`StaffRepository`); this is only for
+  /// visibility from `/hd-ops`, alongside the seat-cap stepper.
   Future<List<StaffMember>> listStaff(String businessId) async {
     try {
       final res = await _functions.httpsCallable('adminListStaff').call<List<dynamic>>({'businessId': businessId});
@@ -158,34 +160,6 @@ class AdminRepository {
           .toList();
     } on FirebaseFunctionsException catch (e) {
       throw AdminFailure(e.message ?? 'could not load staff.');
-    }
-  }
-
-  Future<StaffMember> createStaff(
-    String businessId, {
-    required String email,
-    String? displayName,
-  }) async {
-    try {
-      final res = await _functions.httpsCallable('adminCreateStaff').call<Map<Object?, Object?>>({
-        'businessId': businessId,
-        'email': email,
-        'displayName': ?displayName,
-      });
-      return StaffMember.fromMap(res.data.cast<String, dynamic>());
-    } on FirebaseFunctionsException catch (e) {
-      throw AdminFailure(e.message ?? 'could not add staff. please try again.');
-    }
-  }
-
-  Future<void> removeStaff(String businessId, String uid) async {
-    try {
-      await _functions.httpsCallable('adminRemoveStaff').call<Map<String, dynamic>>({
-        'businessId': businessId,
-        'uid': uid,
-      });
-    } on FirebaseFunctionsException catch (e) {
-      throw AdminFailure(e.message ?? 'could not remove staff. please try again.');
     }
   }
 

@@ -8,12 +8,11 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_button.dart';
-import '../../widgets/app_input.dart';
-import '../../widgets/confirm_dialog.dart';
 
-/// Staff seat management for one business. Operator-only by design: seats are
-/// what HyperDynamics sells, so businesses can't add their own (what the owner
-/// *does* control is the staff permission policy, in the app's own Settings).
+/// Read-only staff view for one business, plus the seat-cap stepper. Staff
+/// themselves are added/removed by the business owner, self-serve, in their
+/// own Settings screen (`StaffRosterCard`) — this exists purely so you can see
+/// who's on an account without asking, and adjust how many seats they get.
 ///
 /// Centred `Dialog` with `maxWidth: 440`, matching `showAppConfirmDialog` and
 /// the rest of this app's popups.
@@ -42,56 +41,29 @@ class _StaffPanel extends ConsumerStatefulWidget {
 }
 
 class _StaffPanelState extends ConsumerState<_StaffPanel> {
-  String _email = '';
-  String _name = '';
-  bool _saving = false;
+  late int _cap = widget.business.maxStaffSeats;
+  bool _savingCap = false;
   String? _error;
 
   String get _businessId => widget.business.businessId;
 
-  /// Mirrors the server's check in `staff.ts` so a typo is caught before a
-  /// round trip — staff sign in with Google, so a non-gmail address would
-  /// create an account that can never actually be signed into.
-  bool get _emailValid => RegExp(r'^[^@\s]+@(gmail\.com|googlemail\.com)$').hasMatch(_email.trim().toLowerCase());
-
-  Future<void> _add() async {
+  Future<void> _setCap(int next) async {
+    final previous = _cap;
     setState(() {
-      _saving = true;
+      _cap = next;
+      _savingCap = true;
       _error = null;
     });
     try {
-      await ref.read(adminRepositoryProvider).createStaff(
-            _businessId,
-            email: _email.trim(),
-            displayName: _name.trim().isEmpty ? null : _name.trim(),
-          );
-      if (!mounted) return;
-      setState(() {
-        _email = '';
-        _name = '';
-      });
-      ref.invalidate(adminStaffProvider(_businessId));
+      await ref.read(adminRepositoryProvider).updateFeatures(_businessId, maxStaffSeats: next);
+      // The row this dialog was opened from is a snapshot; make sure the
+      // console's list reflects the new cap once this closes.
+      ref.invalidate(adminBusinessesProvider);
     } on AdminFailure catch (e) {
+      if (mounted) setState(() => _cap = previous);
       if (mounted) setState(() => _error = e.message);
     } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<void> _remove(String uid, String label) async {
-    final confirmed = await showAppConfirmDialog(
-      context,
-      title: 'remove $label?',
-      body: 'they lose access immediately and are signed out on every device. their past transactions stay in the ledger.',
-      confirmLabel: 'remove',
-      confirmVariant: AppButtonVariant.danger,
-    );
-    if (!confirmed) return;
-    try {
-      await ref.read(adminRepositoryProvider).removeStaff(_businessId, uid);
-      ref.invalidate(adminStaffProvider(_businessId));
-    } on AdminFailure catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) setState(() => _savingCap = false);
     }
   }
 
@@ -111,10 +83,31 @@ class _StaffPanelState extends ConsumerState<_StaffPanel> {
             Text(widget.business.displayName, style: AppTypography.h2),
             const SizedBox(height: 6),
             Text(
-              'staff sign in with google only. what they can do is set by the owner in their own settings screen.',
+              'staff are added and removed by the business owner in their own settings screen. this view is read-only.',
               style: AppTypography.sm.copyWith(height: 1.5),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
+
+            Row(
+              children: [
+                Text('staff seats', style: AppTypography.sm.copyWith(color: AppColors.textSecondary)),
+                const Spacer(),
+                _Stepper(
+                  value: _cap,
+                  min: 0,
+                  max: 10,
+                  loading: _savingCap,
+                  onChanged: _setCap,
+                ),
+              ],
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!, style: AppTypography.sm.copyWith(color: AppColors.loss)),
+            ],
+            const SizedBox(height: 18),
+            const Divider(color: AppColors.borderSubtle, height: 1),
+            const SizedBox(height: 16),
 
             staff.when(
               loading: () => const Padding(
@@ -138,29 +131,14 @@ class _StaffPanelState extends ConsumerState<_StaffPanel> {
                               borderRadius: BorderRadius.circular(AppRadius.md),
                               border: Border.all(color: AppColors.borderSubtle),
                             ),
-                            child: Row(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        s.label,
-                                        style: AppTypography.sm.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textPrimary,
-                                        ),
-                                      ),
-                                      Text(s.email, style: AppTypography.xs2),
-                                    ],
-                                  ),
+                                Text(
+                                  s.label,
+                                  style: AppTypography.sm.copyWith(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                                 ),
-                                IconButton(
-                                  tooltip: 'remove',
-                                  visualDensity: VisualDensity.compact,
-                                  onPressed: () => _remove(s.uid, s.label),
-                                  icon: const Icon(Icons.person_remove_outlined, size: 18, color: AppColors.textTertiary),
-                                ),
+                                Text(s.email, style: AppTypography.xs2),
                               ],
                             ),
                           ),
@@ -168,54 +146,56 @@ class _StaffPanelState extends ConsumerState<_StaffPanel> {
                     ),
             ),
 
-            const SizedBox(height: 12),
-            const Divider(color: AppColors.borderSubtle, height: 1),
-            const SizedBox(height: 16),
-
-            Text('add a staff account', style: AppTypography.sm.copyWith(fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-            const SizedBox(height: 12),
-            AppInput(
-              label: 'gmail address',
-              placeholder: 'name@gmail.com',
-              value: _email,
-              onChanged: (v) => setState(() {
-                _email = v;
-                _error = null;
-              }),
-              error: (_email.isNotEmpty && !_emailValid) ? 'must be a gmail address' : null,
-            ),
-            const SizedBox(height: 14),
-            AppInput(
-              label: 'name (optional)',
-              placeholder: 'shown on their transactions',
-              value: _name,
-              onChanged: (v) => setState(() => _name = v),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: AppTypography.sm.copyWith(color: AppColors.loss)),
-            ],
             const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton(
-                    label: 'add staff',
-                    loading: _saving,
-                    onPressed: _emailValid ? _add : null,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                AppButton(
-                  label: 'done',
-                  variant: AppButtonVariant.ghost,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
+            Align(
+              alignment: Alignment.centerRight,
+              child: AppButton(
+                label: 'done',
+                variant: AppButtonVariant.ghost,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Bounded −/+ number picker, matching the one in `settings_screen.dart`.
+class _Stepper extends StatelessWidget {
+  const _Stepper({required this.value, required this.min, required this.max, required this.onChanged, this.loading = false});
+
+  final int value;
+  final int min;
+  final int max;
+  final bool loading;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: (!loading && value > min) ? () => onChanged(value - 1) : null,
+          icon: const Icon(Icons.remove, size: 18),
+        ),
+        SizedBox(
+          width: 24,
+          child: Text(
+            '$value',
+            textAlign: TextAlign.center,
+            style: AppTypography.sm.copyWith(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          ),
+        ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: (!loading && value < max) ? () => onChanged(value + 1) : null,
+          icon: const Icon(Icons.add, size: 18),
+        ),
+      ],
     );
   }
 }

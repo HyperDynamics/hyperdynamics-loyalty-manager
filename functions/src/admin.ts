@@ -130,6 +130,7 @@ export const adminListBusinesses = onCall(async (request) => {
     subscriptionRenewsAt: (d.get("subscriptionRenewsAt")?.toDate?.() as Date | undefined)?.toISOString() ?? null,
     maxConcurrentSessions: (d.get("maxConcurrentSessions") as number) ?? 1,
     activeSessionCount: ((d.get("activeSessions") as unknown[]) ?? []).length,
+    maxStaffSeats: (d.get("maxStaffSeats") as number | undefined) ?? 3,
   }));
   if (!search) return rows;
   return rows.filter(
@@ -143,9 +144,9 @@ export const adminListBusinesses = onCall(async (request) => {
 /**
  * Toggles a business's add-on feature flags — birthday nudges, whatsapp
  * nudges, csv/pdf export — sold separately from the base tier — and/or its
- * `maxConcurrentSessions` cap (see `sessions.ts`: how many devices can be
- * logged in to this one shared account at once, admin-configurable per
- * business rather than a fixed "just Netflix it" default). Deliberately not
+ * `maxConcurrentSessions` device cap or `maxStaffSeats` staff-seat cap (see
+ * `sessions.ts` and `staff.ts` respectively — both admin-adjustable per
+ * business rather than a fixed one-size default). Deliberately not
  * client-writable (see firestore.rules' businesses update allow-list): only
  * admin can grant these.
  */
@@ -160,6 +161,9 @@ export const adminUpdateBusinessFeatures = onCall(async (request) => {
   }
   if (typeof request.data?.maxConcurrentSessions === "number") {
     patch.maxConcurrentSessions = Math.min(20, Math.max(1, Math.round(request.data.maxConcurrentSessions)));
+  }
+  if (typeof request.data?.maxStaffSeats === "number") {
+    patch.maxStaffSeats = Math.min(10, Math.max(0, Math.round(request.data.maxStaffSeats)));
   }
   if (Object.keys(patch).length === 0) throw new HttpsError("invalid-argument", "no fields provided.");
 

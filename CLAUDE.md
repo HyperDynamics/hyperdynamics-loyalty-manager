@@ -115,11 +115,19 @@ on login. If you touch this code, keep the debounce (or replace it with somethin
 
 Each business has one **owner** (the account created at signup/provisioning) and zero or more **staff**.
 
-- **Staff are created by the HyperDynamics operator** in `/hd-ops` (`adminCreateStaff`/`adminListStaff`/
-  `adminRemoveStaff`), *not* by the business — seats are the commercial lever, so self-serve creation would
-  give away the thing being sold. What the owner *does* control is what staff may do.
+- **Staff are self-serve, added and removed by the business owner** in their own Settings screen
+  (`StaffRosterCard`, backed by `ownerCreateStaff`/`ownerRemoveStaff` — both gated by `requireOwner`, which
+  throws if the caller's role is `staff`, not just by matching `businessId`). Capped at `businesses/{id}.
+  maxStaffSeats` (default 3, set at provisioning), which is **operator-adjustable per business** from
+  `/hd-ops` via `adminUpdateBusinessFeatures` (same pattern as `maxConcurrentSessions`, clamped 0–10) — the
+  `/hd-ops` "staff" dialog itself is **read-only** (`adminListStaff` only) plus that cap stepper, precisely so
+  there's one authoritative place that actually adds/removes staff rather than two consoles that could drift.
+  This flipped from an earlier operator-only design (2026-08-16) — the commercial-lever reasoning that
+  justified operator-only creation was traded for self-serve convenience once an explicit per-business cap
+  existed to bound it; if seats ever need to be a harder commercial gate again, tightening `maxStaffSeats`
+  per business from `/hd-ops` is the lever, not re-restricting who can call the create callable.
 - **Staff are meant to sign in with Google, but "forgot password" is a working, deliberately-left-open
-  fallback.** `adminCreateStaff` rejects non-gmail addresses and pre-creates the Auth user with no password, so
+  fallback.** `ownerCreateStaff` rejects non-gmail addresses and pre-creates the Auth user with no password, so
   the `businessId`/`role` claims exist before their first sign-in; Firebase then links the Google credential to
   that same uid because the project uses the default *one account per email address* setting. **If that
   setting were ever flipped**, Google sign-in would mint a second uid with no claims and staff login would
@@ -153,8 +161,7 @@ choice) are simple enough to be direct, rule-guarded client writes (field allow-
 everything else on the `businesses/{id}` doc (status, feature flags, subscription date, session list) is
 Cloud-Functions-only.
 
-Cloud Functions (`functions/src/`, 20 defined in `index.ts` — 17 deployed, the 3 `adminCreateStaff`/
-`adminListStaff`/`adminRemoveStaff` staff callables are **not deployed yet**):
+Cloud Functions (`functions/src/`, 20 defined in `index.ts`, all deployed):
 - Login is by "business id", not email; Firebase Auth only speaks email/password. Provisioning mints each
   business a synthetic login email `{businessId}@<LOGIN_EMAIL_DOMAIN>`. There's deliberately **no Cloud
   Function to resolve it** — `lib/data/auth_repository.dart` computes the same email client-side (it's a
@@ -196,9 +203,9 @@ Cloud Functions (`functions/src/`, 20 defined in `index.ts` — 17 deployed, the
   distinct IP (see `getCallerIp` below), so the operator can judge for themselves whether a business looks like
   it's running several physical branches off one ₹7,999 account, and start a pricing conversation — never an
   automated block. Only transactions posted since IP-capture shipped have anything to analyze.
-- `staff.ts` — `adminCreateStaff` / `adminListStaff` / `adminRemoveStaff`, the operator-only staff seat
-  management described under "Roles" above. Removal strips the `businessId`/`role` claims, revokes refresh
-  tokens, and drops that uid's device sessions.
+- `staff.ts` — `ownerCreateStaff` / `ownerRemoveStaff` (owner-gated, self-serve, capped at `maxStaffSeats`) and
+  `adminListStaff` (operator, read-only) — the roles/seats management described under "Roles" above. Removal
+  strips the `businessId`/`role` claims, revokes refresh tokens, and drops that uid's device sessions.
 - `earn.ts`, `otp.ts`, `redeem.ts`, `correction.ts` — the ledger operations, each a Firestore transaction.
   `earn.ts`/`redeem.ts` both call `requireActiveSession` and record `ip: getCallerIp(request)` (best-effort,
   `authContext.ts` — never blocks the transaction if absent) on the transaction doc. `earn.ts` also takes a
@@ -258,6 +265,8 @@ error. If you change which fields the aggregate sums, the index must change with
 - `salesDashboardEnabled`: bool, default **true** when absent — operator-controlled. Defaults true unlike the
   paid add-ons because the sales card predates the switch; an absent field must not silently remove a feature
   a live business already has.
+- `maxStaffSeats`: number, default 3 (when absent) — operator-adjustable per business (clamped 0–10). Staff
+  themselves are self-serve within this cap; see the roles section above.
 
 Owner-writable in Settings (in `firestore.rules`' client allow-list, and **owner-only** — staff are blocked by
 `isOwner()` there):

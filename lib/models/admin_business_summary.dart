@@ -15,6 +15,7 @@ class AdminBusinessSummary {
     this.subscriptionRenewsAt,
     this.maxConcurrentSessions = 1,
     this.activeSessionCount = 0,
+    this.maxStaffSeats = 3,
   });
 
   final String businessId;
@@ -37,6 +38,11 @@ class AdminBusinessSummary {
   final int maxConcurrentSessions;
   final int activeSessionCount;
 
+  /// How many staff accounts this business may have — owner-managed self-serve
+  /// in Settings, but the cap itself is operator-adjustable per business (see
+  /// `adminUpdateBusinessFeatures`). Default 3, matching provisioning.
+  final int maxStaffSeats;
+
   /// Null for a still-pending business — the ₹999/year clock starts at
   /// approval, not at signup.
   final DateTime? subscriptionRenewsAt;
@@ -55,5 +61,6 @@ class AdminBusinessSummary {
         subscriptionRenewsAt: map['subscriptionRenewsAt'] != null ? DateTime.parse(map['subscriptionRenewsAt'] as String) : null,
         maxConcurrentSessions: (map['maxConcurrentSessions'] as num?)?.toInt() ?? 1,
         activeSessionCount: (map['activeSessionCount'] as num?)?.toInt() ?? 0,
+        maxStaffSeats: (map['maxStaffSeats'] as num?)?.toInt() ?? 3,
       );
 }

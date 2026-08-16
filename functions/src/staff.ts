@@ -1,15 +1,17 @@
 import { onCall, HttpsError } from "firebase-functions/https";
 import { FieldValue } from "firebase-admin/firestore";
 import { UserRecord } from "firebase-admin/auth";
-import { requireAdmin } from "./lib/authContext";
+import { requireAdmin, requireOwner } from "./lib/authContext";
 import { auth, businessRef, staffCol } from "./lib/admin";
 
 /**
- * Staff accounts are created by the *HyperDynamics operator* in `/hd-ops`, not by
- * the business owner — seats are the commercial lever, so handing businesses
- * self-serve creation would give away the thing being sold. What the owner does
- * control is the single `staffPermissions` policy in Settings (what any staff
- * member may do); this file only controls who exists.
+ * Staff accounts are self-serve, created and removed by the *business owner* in
+ * their own Settings screen — capped at `maxStaffSeats` per business (default 3,
+ * operator-adjustable per business from `/hd-ops`, same pattern as
+ * `maxConcurrentSessions`). `/hd-ops` itself only gets a read-only staff list
+ * (`adminListStaff`) plus the seat-cap stepper — one authoritative place to
+ * actually add/remove staff avoids the two consoles drifting out of sync on who's
+ * really on an account.
  *
  * Staff sign in with Google only — no password is ever minted for them. The Auth
  * user is pre-created here from their Gmail address so the `businessId`/`role`
@@ -20,7 +22,9 @@ import { auth, businessRef, staffCol } from "./lib/admin";
  * *second* uid without these claims and staff login would silently break.
  */
 
-/** Shared shape returned to the console for both create and list. */
+const DEFAULT_MAX_STAFF_SEATS = 3;
+
+/** Shared shape returned to the client for both create and list. */
 function staffRow(uid: string, data: FirebaseFirestore.DocumentData) {
   return {
     uid,
@@ -30,13 +34,11 @@ function staffRow(uid: string, data: FirebaseFirestore.DocumentData) {
   };
 }
 
-export const adminCreateStaff = onCall(async (request) => {
-  requireAdmin(request);
-  const businessId = String(request.data?.businessId ?? "").trim();
+export const ownerCreateStaff = onCall(async (request) => {
+  const businessId = requireOwner(request);
   const email = String(request.data?.email ?? "").trim().toLowerCase();
   const displayName = String(request.data?.displayName ?? "").trim();
 
-  if (!businessId) throw new HttpsError("invalid-argument", "missing businessId.");
   if (!email) throw new HttpsError("invalid-argument", "enter the staff member's email.");
   // Google-only sign-in: a non-Google address would create an account that can
   // never actually be signed into, so reject it here rather than at first login.
@@ -46,6 +48,15 @@ export const adminCreateStaff = onCall(async (request) => {
 
   const bizSnap = await businessRef(businessId).get();
   if (!bizSnap.exists) throw new HttpsError("not-found", "business not found.");
+
+  const maxStaffSeats = (bizSnap.get("maxStaffSeats") as number | undefined) ?? DEFAULT_MAX_STAFF_SEATS;
+  const seatCount = (await staffCol(businessId).count().get()).data().count;
+  if (seatCount >= maxStaffSeats) {
+    throw new HttpsError(
+      "resource-exhausted",
+      `you can have at most ${maxStaffSeats} staff account${maxStaffSeats === 1 ? "" : "s"} — remove one first, or contact us to raise the limit.`
+    );
+  }
 
   let userRecord: UserRecord;
   try {
@@ -81,20 +92,10 @@ export const adminCreateStaff = onCall(async (request) => {
   return staffRow(userRecord.uid, saved.data() ?? {});
 });
 
-export const adminListStaff = onCall(async (request) => {
-  requireAdmin(request);
-  const businessId = String(request.data?.businessId ?? "").trim();
-  if (!businessId) throw new HttpsError("invalid-argument", "missing businessId.");
-
-  const snap = await staffCol(businessId).orderBy("createdAt", "asc").get();
-  return snap.docs.map((d) => staffRow(d.id, d.data()));
-});
-
-export const adminRemoveStaff = onCall(async (request) => {
-  requireAdmin(request);
-  const businessId = String(request.data?.businessId ?? "").trim();
+export const ownerRemoveStaff = onCall(async (request) => {
+  const businessId = requireOwner(request);
   const uid = String(request.data?.uid ?? "").trim();
-  if (!businessId || !uid) throw new HttpsError("invalid-argument", "missing businessId or uid.");
+  if (!uid) throw new HttpsError("invalid-argument", "missing uid.");
 
   const staffDoc = await staffCol(businessId).doc(uid).get();
   if (!staffDoc.exists) throw new HttpsError("not-found", "staff member not found.");
@@ -118,4 +119,14 @@ export const adminRemoveStaff = onCall(async (request) => {
 
   await staffCol(businessId).doc(uid).delete();
   return { removed: uid };
+});
+
+/** Operator's read-only view in /hd-ops — no create/remove counterpart here on purpose. */
+export const adminListStaff = onCall(async (request) => {
+  requireAdmin(request);
+  const businessId = String(request.data?.businessId ?? "").trim();
+  if (!businessId) throw new HttpsError("invalid-argument", "missing businessId.");
+
+  const snap = await staffCol(businessId).orderBy("createdAt", "asc").get();
+  return snap.docs.map((d) => staffRow(d.id, d.data()));
 });
