@@ -118,17 +118,24 @@ Each business has one **owner** (the account created at signup/provisioning) and
 - **Staff are created by the HyperDynamics operator** in `/hd-ops` (`adminCreateStaff`/`adminListStaff`/
   `adminRemoveStaff`), *not* by the business — seats are the commercial lever, so self-serve creation would
   give away the thing being sold. What the owner *does* control is what staff may do.
-- **Staff sign in with Google only.** `adminCreateStaff` rejects non-gmail addresses and pre-creates the Auth
-  user (no password) so the `businessId`/`role` claims exist before their first sign-in; Firebase then links
-  the Google credential to that same uid because the project uses the default *one account per email address*
-  setting. **If that setting were ever flipped**, Google sign-in would mint a second uid with no claims and
-  staff login would silently break.
+- **Staff are meant to sign in with Google, but "forgot password" is a working, deliberately-left-open
+  fallback.** `adminCreateStaff` rejects non-gmail addresses and pre-creates the Auth user with no password, so
+  the `businessId`/`role` claims exist before their first sign-in; Firebase then links the Google credential to
+  that same uid because the project uses the default *one account per email address* setting. **If that
+  setting were ever flipped**, Google sign-in would mint a second uid with no claims and staff login would
+  silently break. Since a staff account starts with no password, the login screen's business-id/password form
+  has nothing to type — confirmed live (2026-08-16) that the natural move is "forgot password" instead of
+  noticing the Google button below, so a short hint was added under the Google button pointing staff there. The
+  "forgot password" path itself is intentionally not blocked: it still only works for whoever controls that
+  Gmail inbox, so it's gated by the same thing Google sign-in is, and every permission check happens
+  server-side off the account's role regardless of which credential got them in.
 - **Permissions are one policy per business**, not per staff member: `businesses/{id}.staffPermissions`,
   owner-edited in Settings. Enforced in three places — the nav hides items (`_visibleNavItems`), the router
-  redirects direct URLs (`_staffMayVisit`), and **the callables re-check server-side**
-  (`assertStaffPermission`/`requirePermission`), which is the only one of the three that is actually a
-  security boundary. `settings` is deliberately not a permission: staff who could edit settings could grant
-  themselves everything else.
+  redirects direct URLs (`_staffMayVisit`), and **the callables re-check server-side** via
+  `loadAuthorizedBusiness` (`sessions.ts`), which is the only one of the three that is actually a security
+  boundary. `settings` is deliberately not a permission: staff who could edit settings could grant themselves
+  everything else. `loadAuthorizedBusiness` also folds in the session-liveness check in the same read — see the
+  latency note below; don't reintroduce a second `businessRef().get()` per call for either check.
 - An **absent `role` claim means owner**, everywhere (client and server). Every account provisioned before
   this shipped has no `role`, so defaulting the other way would lock every live business out of its own
   settings.
@@ -270,24 +277,27 @@ those with no attribution rather than guessing), `manualPoints` (bool, earn), an
 `businesses/{id}/staff/{uid}` — one doc per staff account (`email`, `displayName`, `createdAt`, `createdBy`).
 Client-readable, Cloud-Functions-only writes.
 
-## Current status (as of 2026-08-15)
+## Current status (as of 2026-08-16)
 
-### Built but NOT deployed — do this first
+Roles/staff, the settings switches, the birthday window and the sales-card flag are all **deployed and
+verified live** — rules, all 20 Cloud Functions, and the frontend are on Firebase Hosting staging
+(`hyperdynamics-loyalty.web.app`). Google Sign-In is enabled project-wide (real client id wired, production
+domain authorized). Verified end-to-end against the live demo/arul accounts: the security-rules test suite (8
+cases including the legacy-owner-no-role-claim case), an old-frontend-shaped `earnCredit` call (production
+compatibility), `manualPoints` correctly rejected server-side when disabled, and staff-permission enforcement.
+**Hostinger production is still on the pre-staff build** — pending the user's own deploy.
 
-Roles/staff, the settings switches, the birthday window and the sales-card flag are all **written, analyzing
-clean, tested and building, but not shipped**. Nothing in this group is live yet:
-1. `firebase deploy --only functions` — 3 new callables (`adminCreateStaff`/`adminListStaff`/
-   `adminRemoveStaff`) plus changes to `earnCredit`/`redeemPoints`/`reverseTransaction`/
-   `adminUpdateBusinessFeatures`/`beginSession`.
-2. `firebase deploy --only firestore:rules` — **required**, and required *with* the functions deploy: the
-   rules add `isOwner()` and widen the client-writable allow-list to the four new Settings fields. Without it
-   every new Settings toggle fails with a permission error.
-3. Frontend to both hosting targets (`flutter build web --release`, then Firebase Hosting and the Hostinger
-   zip + hPanel flow).
-
-Deploy order matters slightly: rules and functions before the frontend, so the new UI never writes fields the
-backend still rejects. Existing behaviour is unaffected until then — every new field defaults to its
-pre-existing behaviour when absent.
+**Known, deliberately-not-fixed-yet: ~1.3s latency on every earn/redeem/correction call.** Cloud Functions run
+in `us-central1`; Firestore is in `asia-south1`. Every Firestore op inside a callable pays a cross-Pacific
+round trip, and each of these callables makes 2+ sequential ones (confirmed via `curl -w`, 8 back-to-back calls
+all ~1.3-1.4s — ruled out cold starts). One contributing cause *was* fixed and deployed: `earnCredit`/
+`redeemPoints`/`reverseTransaction` used to read the business doc twice per call (once for the session check,
+once for settings/permissions); `sessions.ts`'s `loadAuthorizedBusiness` now does it in one read. That saves
+~50-100ms, not the ~1.3s — the real fix is moving Cloud Functions to `asia-south1`, which requires deleting and
+recreating all 20 functions (v2/Cloud Run functions can't migrate region in-place) plus updating every client
+`FirebaseFunctions.instance` call site to the new region, coordinated so there's no window where the client
+points at an empty region. Explicitly deferred at the user's request (2026-08-16) — do this as its own
+dedicated task, not inline with something else.
 
 ## Previous status (as of 2026-08-11)
 

@@ -206,6 +206,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     loading: _submittingGoogle,
                     onPressed: _submitting ? null : _loginWithGoogle,
                   ),
+                  const SizedBox(height: 8),
+                  // Staff accounts are created with no password at all — the field
+                  // above will never have anything to type, which otherwise reads as
+                  // broken rather than "use the button below instead."
+                  Text(
+                    'staff members: sign in with google above — your account has no password.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.xs2,
+                  ),
                   const SizedBox(height: 18),
                   Align(
                     alignment: Alignment.center,
