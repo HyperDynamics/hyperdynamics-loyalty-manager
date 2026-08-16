@@ -33,7 +33,7 @@ class AdminBusinessSummary {
   /// How many devices each account on this business may be signed in on at
   /// once (the cap is per user account, so staff don't evict each other), and
   /// how many device sessions are currently registered across all of them —
-  /// see `beginSession`/`requireActiveSession` in the backend.
+  /// see `beginSession`/`assertSessionActive` in the backend.
   final int maxConcurrentSessions;
   final int activeSessionCount;
 

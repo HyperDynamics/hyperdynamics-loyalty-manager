@@ -80,7 +80,7 @@ class _LoyaltyManagerAppState extends ConsumerState<LoyaltyManagerApp> {
   }
 }
 
-/// Live counterpart to the server-side check in `requireActiveSession`
+/// Live counterpart to the server-side check in `assertSessionActive`
 /// (`functions/src/sessions.ts`) — as soon as this device's `sessionId`
 /// disappears from the business's active list (a newer login elsewhere
 /// evicted it), sign out immediately instead of waiting for this device's

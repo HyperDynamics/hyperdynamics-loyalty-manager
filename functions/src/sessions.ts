@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { onCall, HttpsError, CallableRequest } from "firebase-functions/https";
 import { auth, businessRef } from "./lib/admin";
-import { requireBusinessId } from "./lib/authContext";
+import { requireBusinessId, StaffPermission, assertStaffPermission } from "./lib/authContext";
 
 export interface ActiveSession {
   sessionId: string;
@@ -56,7 +56,7 @@ export function trimSessionsToCap(sessions: ActiveSession[], cap: number, now = 
  * configured `maxConcurrentSessions` (admin-set, default 1 — see
  * `adminUpdateBusinessFeatures`). Other accounts on the business are untouched.
  * `earnCredit`/`redeemPoints`/`reverseTransaction` then refuse to run for any
- * device whose session got evicted (see `requireActiveSession` below).
+ * device whose session got evicted (see `assertSessionActive`/`loadAuthorizedBusiness` below).
  */
 export const beginSession = onCall(async (request) => {
   const businessId = requireBusinessId(request);
@@ -88,10 +88,8 @@ export const beginSession = onCall(async (request) => {
  * every already-signed-in tab the moment this deploys — enforcement begins
  * the first time any device on that business does a fresh login.
  */
-export async function requireActiveSession(request: CallableRequest): Promise<void> {
-  const businessId = requireBusinessId(request);
-  const snap = await businessRef(businessId).get();
-  const activeSessions = snap.get("activeSessions") as ActiveSession[] | undefined;
+export function assertSessionActive(request: CallableRequest, bizSnap: FirebaseFirestore.DocumentSnapshot): void {
+  const activeSessions = bizSnap.get("activeSessions") as ActiveSession[] | undefined;
   if (activeSessions === undefined) return;
 
   const sessionId = request.auth?.token?.sessionId as string | undefined;
@@ -99,4 +97,27 @@ export async function requireActiveSession(request: CallableRequest): Promise<vo
   if (!stillActive) {
     throw new HttpsError("permission-denied", "signed out — this account is active on another device.");
   }
+}
+
+/**
+ * One Firestore read covering three checks earn/redeem/correction all need
+ * regardless — the business exists, this device's session is still live, and
+ * this account (owner or staff) is allowed to perform `permission` — instead of
+ * each doing its own separate `businessRef().get()`. Two sequential reads of
+ * the same document on every single Earn/Redeem tap was real, measurable
+ * latency added directly to the click-to-response path; this merges them into
+ * one round trip. Returns the snapshot so the caller can also pull whatever
+ * settings it needs (ratio, staffPermissions, otpEnabled, …) from the same
+ * read rather than fetching again.
+ */
+export async function loadAuthorizedBusiness(
+  request: CallableRequest,
+  permission: StaffPermission
+): Promise<FirebaseFirestore.DocumentSnapshot> {
+  const businessId = requireBusinessId(request);
+  const snap = await businessRef(businessId).get();
+  if (!snap.exists) throw new HttpsError("not-found", "business not found.");
+  assertSessionActive(request, snap);
+  assertStaffPermission(request, permission, snap.get("staffPermissions"));
+  return snap;
 }

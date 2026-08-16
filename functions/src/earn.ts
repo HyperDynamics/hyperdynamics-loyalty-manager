@@ -1,14 +1,13 @@
 import { onCall, HttpsError } from "firebase-functions/https";
 import { FieldValue } from "firebase-admin/firestore";
-import { db, businessRef, customersCol, transactionsCol } from "./lib/admin";
-import { requireBusinessId, getCallerIp, getActorLabel, getRole, assertStaffPermission } from "./lib/authContext";
-import { requireActiveSession } from "./sessions";
+import { db, customersCol, transactionsCol } from "./lib/admin";
+import { requireBusinessId, getCallerIp, getActorLabel, getRole } from "./lib/authContext";
+import { loadAuthorizedBusiness } from "./sessions";
 import { digitsOnly, pointsForAmount } from "./lib/format";
 
 /** E. Earn — credits points for a bill amount at the business's configured ratio. */
 export const earnCredit = onCall(async (request) => {
   const businessId = requireBusinessId(request);
-  await requireActiveSession(request);
   const phone = digitsOnly(String(request.data?.phone ?? ""));
   const amount = Number(request.data?.amount);
   const name = String(request.data?.name ?? "").trim().slice(0, 60);
@@ -26,9 +25,7 @@ export const earnCredit = onCall(async (request) => {
   // year.
   const birthdayMonthDay = dobRaw ? dobRaw.slice(5) : "";
 
-  const bizSnap = await businessRef(businessId).get();
-  if (!bizSnap.exists) throw new HttpsError("not-found", "business not found.");
-  assertStaffPermission(request, "earn", bizSnap.get("staffPermissions"));
+  const bizSnap = await loadAuthorizedBusiness(request, "earn");
 
   // Both of these are owner-configured in Settings, and both are re-checked here
   // rather than trusted from the client: the earn form hides the manual-points

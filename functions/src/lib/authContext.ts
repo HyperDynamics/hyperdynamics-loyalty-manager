@@ -1,5 +1,4 @@
 import { HttpsError, CallableRequest } from "firebase-functions/https";
-import { businessRef } from "./admin";
 
 /**
  * Every authenticated callable derives its tenant from the caller's
@@ -70,17 +69,13 @@ export function normalizeStaffPermissions(raw: unknown): Record<StaffPermission,
  * if the business's single staff policy (`staffPermissions`, owner-edited in
  * Settings) grants that action. Enforced here rather than only in the UI because
  * hiding a nav item is presentation, not authorization.
+ *
+ * Always takes an already-fetched snapshot rather than fetching its own —
+ * `sessions.ts`'s `loadAuthorizedBusiness` is what every mutating callable uses to
+ * get that snapshot, in the same read it needs for the session check and its own
+ * settings (ratio, otpEnabled, …). A version of this that fetched independently
+ * used to mean earn/redeem/correction each read the business doc twice per call.
  */
-export async function requirePermission(request: CallableRequest, permission: StaffPermission): Promise<void> {
-  if (getRole(request) !== "staff") return;
-  const businessId = requireBusinessId(request);
-  const snap = await businessRef(businessId).get();
-  assertStaffPermission(request, permission, snap.get("staffPermissions"));
-}
-
-/** Sync variant for callables that have already loaded the business document —
- * earn/redeem read it anyway for the points ratio, so this keeps the hot
- * point-of-sale path at one read instead of two. */
 export function assertStaffPermission(
   request: CallableRequest,
   permission: StaffPermission,

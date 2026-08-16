@@ -165,7 +165,7 @@ class AuthRepository {
   /// full token-refresh round trip before updating local state, that echo
   /// can arrive first and make this very device look evicted to itself.
   /// The token is still refreshed (in the background, not awaited here) so
-  /// the claim is present for future `requireActiveSession` server checks.
+  /// the claim is present for future `assertSessionActive` server checks.
   Future<String> beginSession() async {
     final label = kIsWeb ? 'web (${defaultTargetPlatform.name})' : defaultTargetPlatform.name;
     final result = await _functions.httpsCallable('beginSession').call<Map<String, dynamic>>({'deviceLabel': label});

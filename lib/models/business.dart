@@ -122,7 +122,7 @@ class Business {
 
   /// How many devices can be signed in to this business's shared login at
   /// once (admin-configurable, default 1 — see `beginSession`/
-  /// `requireActiveSession` in the backend). [activeSessionIds] is the
+  /// `assertSessionActive` in the backend). [activeSessionIds] is the
   /// current occupants; used client-side only to detect this device having
   /// been evicted by a newer login elsewhere (see `app.dart`'s listener).
   final int maxConcurrentSessions;
