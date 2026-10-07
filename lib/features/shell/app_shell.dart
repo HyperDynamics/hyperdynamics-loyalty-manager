@@ -42,8 +42,20 @@ const _navItems = [
       isEnabled: _birthdaysEnabled, staffPermission: _canBirthdays),
   _NavItem('/app/correction', Icons.history_rounded, 'history & correction', 'fix', staffPermission: _canCorrect),
   // No staffPermission ⇒ owner-only.
-  _NavItem('/app/settings', Icons.settings_outlined, 'settings', 'settings'),
+  _NavItem(settingsLocation, Icons.settings_outlined, 'settings', 'settings'),
 ];
+
+const settingsLocation = '/app/settings';
+
+/// Whether the bottom tab bar has to carry its own log-out cell.
+///
+/// On narrow viewports the sidebar — which holds the only standing log-out
+/// button — isn't rendered, so the settings screen's button is the sole way
+/// out. Staff can't open settings, which left them with no way to sign out at
+/// all. Keyed off whether settings is actually reachable rather than off the
+/// role directly, so the rule keeps holding if the nav ever changes: grant
+/// staff a settings tab and this turns itself off again.
+bool needsLogoutTab(Iterable<String> visibleLocations) => !visibleLocations.contains(settingsLocation);
 
 bool _birthdaysEnabled(Business? business) => business?.birthdayEnabled ?? false;
 
@@ -140,7 +152,14 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bgApp,
       body: SingleChildScrollView(child: main),
-      bottomNavigationBar: _TabBar(location: location, business: business, items: items, onItemTap: onItemTap),
+      bottomNavigationBar: _TabBar(
+        location: location,
+        business: business,
+        items: items,
+        onItemTap: onItemTap,
+        showLogout: needsLogoutTab(items.map((i) => i.location)),
+        onLogout: () => _logout(context, ref),
+      ),
     );
   }
 }
@@ -282,11 +301,24 @@ class _SidebarButton extends StatelessWidget {
 }
 
 class _TabBar extends StatelessWidget {
-  const _TabBar({required this.location, required this.business, required this.items, required this.onItemTap});
+  const _TabBar({
+    required this.location,
+    required this.business,
+    required this.items,
+    required this.onItemTap,
+    this.showLogout = false,
+    this.onLogout,
+  });
   final String location;
   final Business? business;
   final List<_NavItem> items;
   final ValueChanged<_NavItem> onItemTap;
+
+  /// Whether to append a log-out cell. Set for accounts that can't reach the
+  /// settings screen (staff), who would otherwise be stranded on narrow
+  /// viewports — the sidebar's log-out button never renders there.
+  final bool showLogout;
+  final VoidCallback? onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -323,6 +355,24 @@ class _TabBar extends StatelessWidget {
                     ),
                   );
                 }),
+              if (showLogout)
+                Expanded(
+                  child: InkWell(
+                    onTap: onLogout,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.logout_rounded, size: 20, color: AppColors.textTertiary),
+                          const SizedBox(height: 3),
+                          Text('log out',
+                              style: AppTypography.xs2.copyWith(fontSize: 10, color: AppColors.textTertiary)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
