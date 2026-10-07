@@ -366,7 +366,10 @@ class _TabBar extends StatelessWidget {
                         children: [
                           const Icon(Icons.logout_rounded, size: 20, color: AppColors.textTertiary),
                           const SizedBox(height: 3),
-                          Text('log out',
+                          // One word on purpose: "log out" has a space to wrap
+                          // at, and tab cells are ~54px wide on a small phone.
+                          Text('logout',
+                              maxLines: 1,
                               style: AppTypography.xs2.copyWith(fontSize: 10, color: AppColors.textTertiary)),
                         ],
                       ),
