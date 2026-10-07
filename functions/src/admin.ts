@@ -5,6 +5,7 @@ import { requireAdmin } from "./lib/authContext";
 import { auth, businessRef, db } from "./lib/admin";
 import { oneYearFrom } from "./lib/format";
 import { createBusinessAccount } from "./provisioning";
+import { clearTrialPatch, TRIAL_ADD_ONS } from "./trial";
 import { ActiveSession, trimSessionsToCap } from "./sessions";
 
 /**
@@ -97,12 +98,23 @@ export const adminRenewSubscription = onCall(async (request) => {
   const snap = await ref.get();
   if (!snap.exists) throw new HttpsError("not-found", "business not found.");
 
+  const isTrial = (snap.get("isTrial") as boolean | undefined) === true;
   const current = snap.get("subscriptionRenewsAt") as Timestamp | undefined;
-  const base = current && current.toMillis() > Date.now() ? current.toDate() : new Date();
+  // Converting a trial starts the paid year from now: trial time was never
+  // bought, so carrying its remainder forward would hand over free days. Only
+  // genuinely paid time is preserved by the "later of" rule below.
+  const base = !isTrial && current && current.toMillis() > Date.now() ? current.toDate() : new Date();
   const next = oneYearFrom(base);
 
-  await ref.set({ subscriptionRenewsAt: Timestamp.fromDate(next) }, { merge: true });
-  return { subscriptionRenewsAt: next.toISOString() };
+  const patch: Record<string, unknown> = { subscriptionRenewsAt: Timestamp.fromDate(next) };
+  if (isTrial) {
+    // Hand back exactly the add-ons the trial switched on, so a converted
+    // business doesn't silently keep features it never paid for.
+    Object.assign(patch, clearTrialPatch((snap.get("trialGrantedAddOns") as string[] | undefined) ?? []));
+  }
+
+  await ref.set(patch, { merge: true });
+  return { subscriptionRenewsAt: next.toISOString(), convertedFromTrial: isTrial };
 });
 
 /**
@@ -131,6 +143,7 @@ export const adminListBusinesses = onCall(async (request) => {
     maxConcurrentSessions: (d.get("maxConcurrentSessions") as number) ?? 1,
     activeSessionCount: ((d.get("activeSessions") as unknown[]) ?? []).length,
     maxStaffSeats: (d.get("maxStaffSeats") as number | undefined) ?? 3,
+    isTrial: (d.get("isTrial") as boolean | undefined) ?? false,
   }));
   if (!search) return rows;
   return rows.filter(
@@ -155,7 +168,7 @@ export const adminUpdateBusinessFeatures = onCall(async (request) => {
   const businessId = String(request.data?.businessId ?? "").trim();
   if (!businessId) throw new HttpsError("invalid-argument", "missing businessId.");
 
-  const patch: Record<string, boolean | number | ActiveSession[]> = {};
+  const patch: Record<string, unknown> = {};
   for (const key of ["birthdayEnabled", "whatsappEnabled", "exportEnabled", "salesDashboardEnabled"] as const) {
     if (typeof request.data?.[key] === "boolean") patch[key] = request.data[key];
   }
@@ -178,6 +191,15 @@ export const adminUpdateBusinessFeatures = onCall(async (request) => {
   if (typeof patch.maxConcurrentSessions === "number") {
     const existing = (snap.get("activeSessions") as ActiveSession[] | undefined) ?? [];
     patch.activeSessions = trimSessionsToCap(existing, patch.maxConcurrentSessions);
+  }
+
+  // Turning an add-on on during a trial is a deliberate, permanent grant, so
+  // stop treating it as trial-granted — otherwise the expiry sweep would take
+  // back something the operator meant the business to keep.
+  if ((snap.get("isTrial") as boolean | undefined) === true) {
+    const granted = (snap.get("trialGrantedAddOns") as string[] | undefined) ?? [];
+    const kept = granted.filter((flag) => !(TRIAL_ADD_ONS as readonly string[]).includes(flag) || patch[flag] !== true);
+    if (kept.length !== granted.length) patch.trialGrantedAddOns = kept;
   }
 
   await ref.set(patch, { merge: true });

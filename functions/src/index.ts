@@ -17,3 +17,4 @@ export { selfSignup, selfSignupGoogle } from "./selfSignup";
 export { adminCheckMultiLocation } from "./multiLocation";
 export { beginSession } from "./sessions";
 export { ownerCreateStaff, ownerRemoveStaff, adminListStaff } from "./staff";
+export { adminStartTrial, expireTrials } from "./trial";

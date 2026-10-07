@@ -16,6 +16,7 @@ class AdminBusinessSummary {
     this.maxConcurrentSessions = 1,
     this.activeSessionCount = 0,
     this.maxStaffSeats = 3,
+    this.isTrial = false,
   });
 
   final String businessId;
@@ -47,6 +48,18 @@ class AdminBusinessSummary {
   /// approval, not at signup.
   final DateTime? subscriptionRenewsAt;
 
+  /// On an operator-granted trial rather than a paid subscription. Expiry runs
+  /// through the same [subscriptionLapsed] clock either way.
+  final bool isTrial;
+
+  /// Days left on the trial, floored at 0; null when this isn't a trial.
+  int? get trialDaysRemaining {
+    final endsAt = subscriptionRenewsAt;
+    if (!isTrial || endsAt == null) return null;
+    final diff = endsAt.difference(DateTime.now()).inHours / 24.0;
+    return diff < 0 ? 0 : diff.ceil();
+  }
+
   bool get subscriptionLapsed => subscriptionRenewsAt != null && subscriptionRenewsAt!.isBefore(DateTime.now());
 
   factory AdminBusinessSummary.fromMap(Map<String, dynamic> map) => AdminBusinessSummary(
@@ -62,5 +75,6 @@ class AdminBusinessSummary {
         maxConcurrentSessions: (map['maxConcurrentSessions'] as num?)?.toInt() ?? 1,
         activeSessionCount: (map['activeSessionCount'] as num?)?.toInt() ?? 0,
         maxStaffSeats: (map['maxStaffSeats'] as num?)?.toInt() ?? 3,
+        isTrial: (map['isTrial'] as bool?) ?? false,
       );
 }

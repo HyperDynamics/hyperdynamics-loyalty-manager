@@ -174,6 +174,27 @@ class AdminRepository {
     }
   }
 
+  /// Starts an operator-granted trial. [days] is capped at 14 server-side
+  /// (`MAX_TRIAL_DAYS`) — the callable rejects anything longer rather than
+  /// quietly trimming it, so a console bug can't hand out a longer trial.
+  Future<({DateTime trialEndsAt, List<String> grantedAddOns})> startTrial(
+    String businessId, {
+    int days = 14,
+  }) async {
+    try {
+      final res = await _functions
+          .httpsCallable('adminStartTrial')
+          .call<Map<String, dynamic>>({'businessId': businessId, 'days': days});
+      final data = res.data;
+      return (
+        trialEndsAt: DateTime.parse(data['trialEndsAt'] as String),
+        grantedAddOns: ((data['grantedAddOns'] as List?) ?? const []).cast<String>(),
+      );
+    } on FirebaseFunctionsException catch (e) {
+      throw AdminFailure(e.message ?? 'could not start the trial. please try again.');
+    }
+  }
+
   /// Diagnostic only, not a fraud gate — see
   /// `functions/src/multiLocation.ts#adminCheckMultiLocation` for what
   /// "multi-location" means here (multiple distinct networks transacting

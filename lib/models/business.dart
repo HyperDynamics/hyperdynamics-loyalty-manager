@@ -98,6 +98,7 @@ class Business {
     this.salesDashboardEnabled = true,
     this.staffPermissions = StaffPermissions.defaults,
     this.maxStaffSeats = 3,
+    this.isTrial = false,
   });
 
   final String id;
@@ -147,7 +148,21 @@ class Business {
   /// a new business gets at provisioning time.
   final int maxStaffSeats;
 
+  /// Whether this business is on an operator-granted trial rather than a paid
+  /// subscription. Purely presentational here — a trial expires through the
+  /// very same [subscriptionLapsed] path as a paid subscription, so nothing
+  /// about the lockout depends on this flag; it only changes the wording.
+  final bool isTrial;
+
   bool get subscriptionLapsed => subscriptionRenewsAt != null && subscriptionRenewsAt!.isBefore(DateTime.now());
+
+  /// Days left on the trial, floored at 0. Null when this isn't a trial.
+  int? get trialDaysRemaining {
+    final endsAt = subscriptionRenewsAt;
+    if (!isTrial || endsAt == null) return null;
+    final diff = endsAt.difference(DateTime.now()).inHours / 24.0;
+    return diff < 0 ? 0 : diff.ceil();
+  }
 
   factory Business.fromMap(String id, Map<String, dynamic> map) => Business(
         id: id,
@@ -174,6 +189,7 @@ class Business {
         salesDashboardEnabled: (map['salesDashboardEnabled'] as bool?) ?? true,
         staffPermissions: StaffPermissions.fromMap((map['staffPermissions'] as Map?)?.cast<String, dynamic>()),
         maxStaffSeats: (map['maxStaffSeats'] as num?)?.toInt() ?? 3,
+        isTrial: (map['isTrial'] as bool?) ?? false,
       );
 
   Business copyWith({
@@ -208,5 +224,6 @@ class Business {
         salesDashboardEnabled: salesDashboardEnabled,
         maxStaffSeats: maxStaffSeats,
         staffPermissions: staffPermissions ?? this.staffPermissions,
+        isTrial: isTrial,
       );
 }

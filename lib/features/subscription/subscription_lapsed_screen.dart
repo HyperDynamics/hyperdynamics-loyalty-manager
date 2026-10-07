@@ -38,11 +38,21 @@ class SubscriptionLapsedScreen extends ConsumerWidget {
                 children: [
                   const Coin(symbol: '!', size: 60),
                   const SizedBox(height: 20),
-                  Text('subscription renewal due', style: AppTypography.h1, textAlign: TextAlign.center),
+                  Text(
+                    business?.isTrial == true ? 'your trial has ended' : 'subscription renewal due',
+                    style: AppTypography.h1,
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 10),
                   Text(
-                    "${business?.displayName ?? 'your account'}'s ₹999/year subscription has lapsed. "
-                    "renew to get back into your dashboard — once we've confirmed payment, this unlocks automatically.",
+                    business?.isTrial == true
+                        // A trial ends rather than lapses, and there's no
+                        // renewal to chase — the ask is to subscribe.
+                        ? "${business?.displayName ?? 'your account'}'s free trial has ended. "
+                            "contact us to activate your account (₹999/year) — once we've confirmed payment, "
+                            "this unlocks automatically and your data is exactly where you left it."
+                        : "${business?.displayName ?? 'your account'}'s ₹999/year subscription has lapsed. "
+                            "renew to get back into your dashboard — once we've confirmed payment, this unlocks automatically.",
                     style: AppTypography.sm,
                     textAlign: TextAlign.center,
                   ),

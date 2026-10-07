@@ -19,6 +19,7 @@ import '../../widgets/app_toggle.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/coin.dart';
 import 'staff_dialog.dart';
+import 'trial_dialog.dart';
 
 /// Operator console — creates a business account directly, bypassing
 /// self-signup. For friends & family or anyone admin wants to onboard
@@ -251,6 +252,27 @@ class _ResultCard extends StatelessWidget {
 class _PendingApprovalsCard extends ConsumerWidget {
   const _PendingApprovalsCard();
 
+  /// Trial straight from the signup queue: activates the account without
+  /// payment, on a clock that locks it again by itself. Length is capped at
+  /// 14 days by the callable, not just by the dialog.
+  Future<void> _startTrial(BuildContext context, WidgetRef ref, PendingBusiness business) async {
+    final days = await showTrialDialog(context, businessName: business.displayName);
+    if (days == null || !context.mounted) return;
+    try {
+      await ref.read(adminRepositoryProvider).startTrial(business.businessId, days: days);
+      ref.invalidate(pendingBusinessesProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${business.displayName} is on a $days-day trial.')),
+        );
+      }
+    } on AdminFailure catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
   Future<void> _approve(BuildContext context, WidgetRef ref, PendingBusiness business) async {
     final confirmed = await showAppConfirmDialog(
       context,
@@ -304,7 +326,11 @@ class _PendingApprovalsCard extends ConsumerWidget {
                 : Column(
                     children: [
                       for (final business in businesses) ...[
-                        _PendingRow(business: business, onApprove: () => _approve(context, ref, business)),
+                        _PendingRow(
+                          business: business,
+                          onApprove: () => _approve(context, ref, business),
+                          onStartTrial: () => _startTrial(context, ref, business),
+                        ),
                         const SizedBox(height: 10),
                       ],
                     ],
@@ -317,9 +343,10 @@ class _PendingApprovalsCard extends ConsumerWidget {
 }
 
 class _PendingRow extends StatelessWidget {
-  const _PendingRow({required this.business, required this.onApprove});
+  const _PendingRow({required this.business, required this.onApprove, required this.onStartTrial});
   final PendingBusiness business;
   final VoidCallback onApprove;
+  final VoidCallback onStartTrial;
 
   @override
   Widget build(BuildContext context) {
@@ -349,6 +376,8 @@ class _PendingRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
+          AppButton(label: 'trial', size: AppButtonSize.sm, variant: AppButtonVariant.outline, onPressed: onStartTrial),
+          const SizedBox(width: 8),
           AppButton(label: 'approve', size: AppButtonSize.sm, onPressed: onApprove),
         ],
       ),
@@ -396,6 +425,30 @@ class _ManageBusinessesCardState extends ConsumerState<_ManageBusinessesCard> {
     try {
       final result = await ref.read(adminRepositoryProvider).checkMultiLocation(business.businessId);
       if (mounted) _showMultiLocationResult(context, business.displayName, result);
+    } on AdminFailure catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  /// Starts a trial from either queue. The callable caps the length at 14
+  /// days and rejects anything longer, so a stale console can't widen it.
+  Future<void> _startTrial(String businessId, String displayName) async {
+    final days = await showTrialDialog(context, businessName: displayName);
+    if (days == null || !mounted) return;
+    try {
+      final result = await ref.read(adminRepositoryProvider).startTrial(businessId, days: days);
+      if (!mounted) return;
+      ref.invalidate(adminBusinessesProvider(_search));
+      ref.invalidate(pendingBusinessesProvider);
+      final granted = result.grantedAddOns.length;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$displayName is on a $days-day trial'
+            '${granted > 0 ? ' — $granted add-on(s) switched on' : ''}.',
+          ),
+        ),
+      );
     } on AdminFailure catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     }
@@ -465,6 +518,7 @@ class _ManageBusinessesCardState extends ConsumerState<_ManageBusinessesCard> {
                           onRenew: () => _renew(business),
                           onCheckLocations: () => _checkMultiLocation(business),
                           onManageStaff: () => showStaffDialog(context, business),
+                          onStartTrial: () => _startTrial(business.businessId, business.displayName),
                         ),
                         const SizedBox(height: 10),
                       ],
@@ -484,6 +538,7 @@ class _ManageBusinessRow extends StatelessWidget {
     required this.onRenew,
     required this.onCheckLocations,
     required this.onManageStaff,
+    required this.onStartTrial,
   });
   final AdminBusinessSummary business;
   final Future<void> Function(
@@ -497,6 +552,7 @@ class _ManageBusinessRow extends StatelessWidget {
   final VoidCallback onRenew;
   final VoidCallback onCheckLocations;
   final VoidCallback onManageStaff;
+  final VoidCallback onStartTrial;
 
   @override
   Widget build(BuildContext context) {
@@ -575,18 +631,34 @@ class _ManageBusinessRow extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  renewsAt == null
-                      ? 'not yet approved — no subscription date'
-                      : '${lapsed ? 'lapsed' : 'renews'} ${DateFormat('d MMM yyyy').format(renewsAt)}',
-                  style: AppTypography.xs2.copyWith(color: lapsed ? AppColors.loss : AppColors.textTertiary),
+                  _subscriptionLine(business, renewsAt, lapsed),
+                  style: AppTypography.xs2.copyWith(
+                    color: lapsed
+                        ? AppColors.loss
+                        : (business.isTrial ? AppColors.gold400 : AppColors.textTertiary),
+                  ),
                 ),
               ),
               AppButton(label: 'staff', size: AppButtonSize.sm, variant: AppButtonVariant.ghost, onPressed: onManageStaff),
               const SizedBox(width: 8),
               AppButton(label: 'check locations', size: AppButtonSize.sm, variant: AppButtonVariant.ghost, onPressed: onCheckLocations),
               const SizedBox(width: 8),
+              AppButton(
+                label: business.isTrial ? 'restart trial' : 'start trial',
+                size: AppButtonSize.sm,
+                variant: AppButtonVariant.ghost,
+                onPressed: onStartTrial,
+              ),
+              const SizedBox(width: 8),
               if (renewsAt != null)
-                AppButton(label: 'renew +1yr', size: AppButtonSize.sm, variant: AppButtonVariant.outline, onPressed: onRenew),
+                AppButton(
+                  // Converting a trial is the same action as a renewal, but
+                  // naming it "convert" makes clear it also ends the trial.
+                  label: business.isTrial ? 'convert +1yr' : 'renew +1yr',
+                  size: AppButtonSize.sm,
+                  variant: AppButtonVariant.outline,
+                  onPressed: onRenew,
+                ),
             ],
           ),
         ],
@@ -720,4 +792,16 @@ class _FeatureSwitch extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The subscription/trial status line on a manage-businesses row.
+String _subscriptionLine(AdminBusinessSummary business, DateTime? renewsAt, bool lapsed) {
+  if (renewsAt == null) return 'not yet approved — no subscription date';
+  final on = DateFormat('d MMM yyyy').format(renewsAt);
+  if (business.isTrial) {
+    if (lapsed) return 'trial ended $on';
+    final left = business.trialDaysRemaining;
+    return 'trial — ${left ?? 0}d left, ends $on';
+  }
+  return '${lapsed ? 'lapsed' : 'renews'} $on';
 }
