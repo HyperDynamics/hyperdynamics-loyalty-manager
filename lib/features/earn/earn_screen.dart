@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../data/ledger_repository.dart';
 import '../../providers/business_providers.dart';
 import '../../providers/feedback_providers.dart';
+import '../../providers/ledger_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
@@ -16,6 +17,7 @@ import '../../widgets/app_input.dart';
 import '../../widgets/coin.dart';
 import '../../widgets/list_row.dart';
 import '../../widgets/actor_chip.dart';
+import 'dob_field_state.dart';
 
 class _SessionEntry {
   const _SessionEntry({required this.phone, required this.name, required this.amount, required this.points});
@@ -44,11 +46,14 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
   String? _networkError;
   final List<_SessionEntry> _sessionEntries = [];
 
-  Future<void> _pickDob() async {
+  /// [current] is whatever the row is showing — a date picked this session, or
+  /// the one already on the customer's record — so "change" opens on that date
+  /// rather than jumping back to the generic default.
+  Future<void> _pickDob(DateTime? current) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: _dob ?? DateTime(now.year - 25),
+      initialDate: current ?? DateTime(now.year - 25),
       firstDate: DateTime(now.year - 110),
       lastDate: now,
     );
@@ -104,6 +109,22 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
     final phoneError = (phoneDigits.isNotEmpty && phoneDigits.length < 10) ? 'enter a 10-digit number' : null;
     final amountNum = num.tryParse(_amount) ?? 0;
 
+    // Look the customer up as soon as the number is complete, so a birthday we
+    // already hold is shown back instead of being asked for a second time.
+    // Only watched at 10 digits — otherwise every keystroke opens a listener.
+    final lookup = phoneDigits.length == 10 ? ref.watch(customerWatchProvider(phoneDigits)) : null;
+    final existingCustomer = lookup?.value;
+    final onFileDob = DateTime.tryParse(existingCustomer?.dob ?? '');
+    final dobState = dobFieldStateFor(
+      phoneLength: phoneDigits.length,
+      lookingUp: lookup?.isLoading ?? false,
+      customerExists: existingCustomer != null,
+      hasOnFileDob: onFileDob != null,
+      hasPickedDob: _dob != null,
+    );
+    // What the row displays, and what "change" opens the picker on.
+    final shownDob = _dob ?? onFileDob;
+
     final manualEnabled = business?.manualPointsEnabled ?? false;
     final manualRaw = _manualPoints.trim();
     final manualPoints = manualEnabled && manualRaw.isNotEmpty ? int.tryParse(manualRaw) : null;
@@ -134,7 +155,12 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
             value: _phone,
             onChanged: (v) => setState(() {
               final d = digitsOnly(v);
-              _phone = d.length > 10 ? d.substring(0, 10) : d;
+              final next = d.length > 10 ? d.substring(0, 10) : d;
+              // A hand-picked date belongs to the number it was picked for, so
+              // drop it when the number changes — otherwise it would silently
+              // ride along onto the next customer.
+              if (next != _phone) _dob = null;
+              _phone = next;
               _networkError = null;
             }),
             error: phoneError,
@@ -149,31 +175,45 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
             onChanged: (v) => setState(() => _name = v),
           ),
           const SizedBox(height: 18),
-          Text('date of birth (optional)', style: AppTypography.xs),
+          Text(
+            dobState == DobFieldState.onFile ? 'date of birth · on file' : 'date of birth (optional)',
+            style: AppTypography.xs,
+          ),
           const SizedBox(height: 8),
           GestureDetector(
-            onTap: _pickDob,
+            onTap: () => _pickDob(shownDob),
             child: Container(
               height: 52,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: AppColors.surfaceInput,
                 borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppColors.borderSoft),
+                border: Border.all(
+                  // Nudge toward filling it in when we know we don't have one.
+                  color: dobState == DobFieldState.newCustomer || dobState == DobFieldState.missingOnFile
+                      ? AppColors.accent.withValues(alpha: 0.45)
+                      : AppColors.borderSoft,
+                ),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
-                      _dob == null ? 'helps power birthday rewards' : DateFormat('d MMM yyyy').format(_dob!),
-                      style: AppTypography.body.copyWith(color: _dob == null ? AppColors.textDisabled : AppColors.textPrimary),
+                      shownDob != null ? DateFormat('d MMM yyyy').format(shownDob) : dobPlaceholderFor(dobState),
+                      style: AppTypography.body.copyWith(
+                        color: shownDob != null ? AppColors.textPrimary : AppColors.textDisabled,
+                      ),
                     ),
                   ),
+                  // Only a hand-picked date is clearable: an on-file birthday
+                  // isn't ours to erase from here, it's only re-pickable.
                   if (_dob != null)
                     GestureDetector(
                       onTap: () => setState(() => _dob = null),
                       child: const Icon(Icons.close_rounded, size: 18, color: AppColors.textTertiary),
                     )
+                  else if (dobState == DobFieldState.onFile)
+                    Text('change', style: AppTypography.xs.copyWith(color: AppColors.accent))
                   else
                     const Icon(Icons.cake_outlined, size: 18, color: AppColors.textTertiary),
                 ],
