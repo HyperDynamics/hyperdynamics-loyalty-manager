@@ -59,3 +59,10 @@ ui-debug.log
 
 # Ad-hoc Hostinger deploy zip (rebuild from `flutter build web --release` when needed)
 hyperpoints_deploy.zip
+
+# Local secrets — never commit (this repo is PUBLIC on GitHub)
+.env
+.env.*
+.env.local
+# ...except this one, which is deliberately tracked and holds no secrets
+!functions/.env.hyperdynamics-loyalty
