@@ -78,4 +78,66 @@ void main() {
     await _typePhone(tester, '987654321');
     expect(find.text('17 Apr 1990'), findsNothing);
   });
+
+  testWidgets('shows a returning customer their name and point balance', (tester) async {
+    await _pumpEarn(
+      tester,
+      const Customer(phone: _phone, name: 'arul', balance: 1240, dob: '1990-04-17'),
+    );
+
+    // Nothing claimed before the number is complete.
+    expect(find.text('arul'), findsNothing);
+    expect(find.text('1240 pts'), findsNothing);
+
+    await _typePhone(tester, _phone);
+
+    // Twice on purpose: once in the summary strip, once as the name field's
+    // placeholder — so the till sees who it is whichever it looks at.
+    expect(find.text('arul'), findsNWidgets(2));
+    expect(find.text('1240 pts'), findsOneWidget);
+    expect(find.text('current balance'), findsOneWidget);
+    // The name is offered as the field's placeholder, not filled in, so
+    // earnCredit omits `name` and the server keeps what it already has.
+    expect(find.text('customer name · on file'), findsOneWidget);
+  });
+
+  testWidgets('announces an unknown number as a new customer', (tester) async {
+    await _pumpEarn(tester, null);
+    await _typePhone(tester, _phone);
+
+    expect(find.text('new customer'), findsOneWidget);
+    expect(find.text("they'll be created when you post this earn"), findsOneWidget);
+    expect(find.text('current balance'), findsNothing);
+  });
+
+  testWidgets('falls back to the masked number when the record has no name', (tester) async {
+    // Customer.fromMap stores the literal 'customer' for a nameless record;
+    // showing that back would read as a real name.
+    await _pumpEarn(tester, const Customer(phone: _phone, name: 'customer', balance: 80));
+    await _typePhone(tester, _phone);
+
+    expect(find.text('customer'), findsNothing);
+    expect(find.text('80 pts'), findsOneWidget);
+    expect(find.text('customer name · on file'), findsNothing);
+  });
+
+  testWidgets('a long name is ellipsised rather than wrapping the strip', (tester) async {
+    await _pumpEarn(
+      tester,
+      const Customer(
+        phone: _phone,
+        name: 'a very long customer name that would otherwise wrap the row',
+        balance: 55,
+      ),
+    );
+    await _typePhone(tester, _phone);
+
+    final strip = tester.widget<Text>(
+      find.text('a very long customer name that would otherwise wrap the row').first,
+    );
+    expect(strip.maxLines, 1);
+    expect(strip.overflow, TextOverflow.ellipsis);
+    expect(find.text('55 pts'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

@@ -17,6 +17,7 @@ import '../../widgets/app_input.dart';
 import '../../widgets/coin.dart';
 import '../../widgets/list_row.dart';
 import '../../widgets/actor_chip.dart';
+import 'customer_summary.dart';
 import 'dob_field_state.dart';
 
 class _SessionEntry {
@@ -125,6 +126,13 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
     // What the row displays, and what "change" opens the picker on.
     final shownDob = _dob ?? onFileDob;
 
+    final lookupState = customerLookupFor(
+      phoneLength: phoneDigits.length,
+      lookingUp: lookup?.isLoading ?? false,
+      customerExists: existingCustomer != null,
+    );
+    final onFileName = onFileDisplayName(existingCustomer);
+
     final manualEnabled = business?.manualPointsEnabled ?? false;
     final manualRaw = _manualPoints.trim();
     final manualPoints = manualEnabled && manualRaw.isNotEmpty ? int.tryParse(manualRaw) : null;
@@ -167,10 +175,22 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
             numeric: true,
             maxLength: 10,
           ),
+          if (lookupState != CustomerLookup.idle) ...[
+            const SizedBox(height: 14),
+            _CustomerStrip(
+              state: lookupState,
+              name: onFileName,
+              phone: phoneDigits,
+              balance: existingCustomer?.balance ?? 0,
+            ),
+          ],
           const SizedBox(height: 18),
           AppInput(
-            label: 'customer name (optional)',
-            placeholder: 'helps identify them at redeem',
+            // A name already on file is shown as the placeholder rather than
+            // filled in, for the same reason as the birthday: leaving it empty
+            // omits `name` from earnCredit, and the server keeps what it has.
+            label: onFileName != null ? 'customer name · on file' : 'customer name (optional)',
+            placeholder: onFileName ?? 'helps identify them at redeem',
             value: _name,
             onChanged: (v) => setState(() => _name = v),
           ),
@@ -391,6 +411,81 @@ class _EarnScreenState extends ConsumerState<EarnScreen> {
         else
           Column(children: [form, const SizedBox(height: 20), sessionList]),
       ],
+    );
+  }
+}
+
+
+/// Who the typed-in number belongs to, and what they currently hold — so the
+/// till can greet a returning customer and see their balance without leaving
+/// Earn. Mirrors the Redeem screen's customer card, scaled down to a row.
+class _CustomerStrip extends StatelessWidget {
+  const _CustomerStrip({
+    required this.state,
+    required this.name,
+    required this.phone,
+    required this.balance,
+  });
+
+  final CustomerLookup state;
+  final String? name;
+  final String phone;
+  final int balance;
+
+  @override
+  Widget build(BuildContext context) {
+    final found = state == CustomerLookup.found;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceInput,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: found ? AppColors.mint400.withValues(alpha: 0.35) : AppColors.borderSubtle),
+      ),
+      child: Row(
+        children: [
+          Coin(symbol: found ? '★' : '+', tone: found ? CoinTone.gold : CoinTone.mint, size: 34),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  switch (state) {
+                    CustomerLookup.checking => 'checking…',
+                    CustomerLookup.newCustomer => 'new customer',
+                    // Falls back to the masked number when the record has no
+                    // name — better than showing the literal word "customer".
+                    CustomerLookup.found => name ?? maskPhone(phone),
+                    CustomerLookup.idle => '',
+                  },
+                  // A long name must not wrap and grow the row out from under
+                  // the balance figure beside it.
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.sm.copyWith(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  switch (state) {
+                    CustomerLookup.checking => 'looking up this number',
+                    CustomerLookup.newCustomer => "they'll be created when you post this earn",
+                    CustomerLookup.found => 'current balance',
+                    CustomerLookup.idle => '',
+                  },
+                  style: AppTypography.xs2,
+                ),
+              ],
+            ),
+          ),
+          if (found)
+            // figureMd scaled down — keeps the tabular numerals, so the figure
+            // doesn't jitter when the balance updates underneath.
+            Text('$balance pts',
+                style: AppTypography.figureMd.copyWith(fontSize: 18, color: AppColors.gold400)),
+        ],
+      ),
     );
   }
 }
